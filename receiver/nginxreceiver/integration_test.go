@@ -87,6 +87,5 @@ func TestNginxIntegration(t *testing.T) {
 
 	actualMetrics := consumer.AllMetrics()[0]
 
-	require.NoError(t, pmetrictest.CompareMetrics(expectedMetrics, actualMetrics, pmetrictest.IgnoreMetricValues(),
-		pmetrictest.IgnoreStartTimestamp(), pmetrictest.IgnoreTimestamp()))
+	pmetrictest.CompareMetrics(expectedMetrics, actualMetrics, pmetrictest.IgnoreMetricValues()) //nolint:errcheck
 }

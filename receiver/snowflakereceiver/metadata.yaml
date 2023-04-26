@@ -1,4 +1,4 @@
-type: snowflakereceiver
+name: snowflakereceiver
 
 # every meter will have these attributes
 resource_attributes:

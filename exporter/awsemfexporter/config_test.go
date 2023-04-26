@@ -59,7 +59,6 @@ func TestLoadConfig(t *testing.T) {
 				LogStreamName:         "",
 				DimensionRollupOption: "ZeroAndSingleDimensionRollup",
 				OutputDestination:     "cloudwatch",
-				Version:               "1",
 				logger:                zap.NewNop(),
 			},
 		},
@@ -80,7 +79,6 @@ func TestLoadConfig(t *testing.T) {
 				LogStreamName:               "",
 				DimensionRollupOption:       "ZeroAndSingleDimensionRollup",
 				OutputDestination:           "cloudwatch",
-				Version:                     "1",
 				ResourceToTelemetrySettings: resourcetotelemetry.Settings{Enabled: true},
 				logger:                      zap.NewNop(),
 			},
@@ -102,7 +100,6 @@ func TestLoadConfig(t *testing.T) {
 				LogStreamName:         "",
 				DimensionRollupOption: "ZeroAndSingleDimensionRollup",
 				OutputDestination:     "cloudwatch",
-				Version:               "1",
 				MetricDescriptors: []MetricDescriptor{{
 					MetricName: "memcached_current_items",
 					Unit:       "Count",

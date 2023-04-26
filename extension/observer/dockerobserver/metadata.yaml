@@ -1,6 +1,6 @@
-type: dockerobserver
+name: dockerobserver
 
 status:
-  class: extension
+  type: extension
   stability: beta
   distributions: [contrib]

@@ -1,7 +1,7 @@
-type: aerospikereceiver
+name: aerospikereceiver
 
 status:
-  class: receiver
+  type: receiver
   stability: alpha
   pipelines: [metrics]
   distributions: [contrib]

@@ -62,7 +62,6 @@ type OTelSpanData struct {
 	Operation      string            `json:"operation"`
 	TraceState     string            `json:"trace_state,omitempty"`
 	Tags           map[string]string `json:"tags,omitempty"`
-	Resource       map[string]string `json:"resource,omitempty"`
 }
 
 type Span struct {
@@ -93,8 +92,7 @@ func ConvertPDataSpanToInstanaSpan(fromS FromS, otelSpan ptrace.Span, serviceNam
 		Timestamp:      uint64(otelSpan.StartTimestamp()) / uint64(time.Millisecond),
 		Duration:       (uint64(otelSpan.EndTimestamp()) - uint64(otelSpan.StartTimestamp())) / uint64(time.Millisecond),
 		Data: OTelSpanData{
-			Tags:     make(map[string]string),
-			Resource: make(map[string]string),
+			Tags: make(map[string]string),
 		},
 		From: &fromS,
 	}
@@ -127,12 +125,6 @@ func ConvertPDataSpanToInstanaSpan(fromS FromS, otelSpan ptrace.Span, serviceNam
 
 	otelSpan.Attributes().Range(func(k string, v pcommon.Value) bool {
 		instanaSpan.Data.Tags[k] = v.AsString()
-
-		return true
-	})
-
-	attributes.Range(func(k string, v pcommon.Value) bool {
-		instanaSpan.Data.Resource[k] = v.AsString()
 
 		return true
 	})

@@ -19,9 +19,7 @@ import (
 	metricspb "github.com/census-instrumentation/opencensus-proto/gen-go/metrics/v1"
 	resourcepb "github.com/census-instrumentation/opencensus-proto/gen-go/resource/v1"
 	conventions "go.opentelemetry.io/collector/semconv/v1.6.1"
-	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	autoscalingv2beta2 "k8s.io/api/autoscaling/v2beta2"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/experimentalmetricmetadata"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/k8sclusterreceiver/internal/constants"
@@ -57,7 +55,7 @@ var hpaDesiredReplicasMetric = &metricspb.MetricDescriptor{
 	Type:        metricspb.MetricDescriptor_GAUGE_INT64,
 }
 
-func GetMetrics(hpa *autoscalingv2.HorizontalPodAutoscaler) []*agentmetricspb.ExportMetricsServiceRequest {
+func GetMetrics(hpa *autoscalingv2beta2.HorizontalPodAutoscaler) []*agentmetricspb.ExportMetricsServiceRequest {
 	metrics := []*metricspb.Metric{
 		{
 			MetricDescriptor: hpaMaxReplicasMetric,
@@ -87,66 +85,24 @@ func GetMetrics(hpa *autoscalingv2.HorizontalPodAutoscaler) []*agentmetricspb.Ex
 
 	return []*agentmetricspb.ExportMetricsServiceRequest{
 		{
-			Resource: getResourceForHPA(&hpa.ObjectMeta),
+			Resource: getResourceForHPA(hpa),
 			Metrics:  metrics,
 		},
 	}
 }
 
-func GetMetricsBeta(hpa *autoscalingv2beta2.HorizontalPodAutoscaler) []*agentmetricspb.ExportMetricsServiceRequest {
-	metrics := []*metricspb.Metric{
-		{
-			MetricDescriptor: hpaMaxReplicasMetric,
-			Timeseries: []*metricspb.TimeSeries{
-				utils.GetInt64TimeSeries(int64(hpa.Spec.MaxReplicas)),
-			},
-		},
-		{
-			MetricDescriptor: hpaMinReplicasMetric,
-			Timeseries: []*metricspb.TimeSeries{
-				utils.GetInt64TimeSeries(int64(*hpa.Spec.MinReplicas)),
-			},
-		},
-		{
-			MetricDescriptor: hpaCurrentReplicasMetric,
-			Timeseries: []*metricspb.TimeSeries{
-				utils.GetInt64TimeSeries(int64(hpa.Status.CurrentReplicas)),
-			},
-		},
-		{
-			MetricDescriptor: hpaDesiredReplicasMetric,
-			Timeseries: []*metricspb.TimeSeries{
-				utils.GetInt64TimeSeries(int64(hpa.Status.DesiredReplicas)),
-			},
-		},
-	}
-
-	return []*agentmetricspb.ExportMetricsServiceRequest{
-		{
-			Resource: getResourceForHPA(&hpa.ObjectMeta),
-			Metrics:  metrics,
-		},
-	}
-}
-
-func getResourceForHPA(om *v1.ObjectMeta) *resourcepb.Resource {
+func getResourceForHPA(hpa *autoscalingv2beta2.HorizontalPodAutoscaler) *resourcepb.Resource {
 	return &resourcepb.Resource{
 		Type: constants.K8sType,
 		Labels: map[string]string{
-			constants.K8sKeyHPAUID:                string(om.UID),
-			constants.K8sKeyHPAName:               om.Name,
-			conventions.AttributeK8SNamespaceName: om.Namespace,
+			constants.K8sKeyHPAUID:                string(hpa.UID),
+			constants.K8sKeyHPAName:               hpa.Name,
+			conventions.AttributeK8SNamespaceName: hpa.Namespace,
 		},
 	}
 }
 
-func GetMetadata(hpa *autoscalingv2.HorizontalPodAutoscaler) map[experimentalmetricmetadata.ResourceID]*metadata.KubernetesMetadata {
-	return map[experimentalmetricmetadata.ResourceID]*metadata.KubernetesMetadata{
-		experimentalmetricmetadata.ResourceID(hpa.UID): metadata.GetGenericMetadata(&hpa.ObjectMeta, "HPA"),
-	}
-}
-
-func GetMetadataBeta(hpa *autoscalingv2beta2.HorizontalPodAutoscaler) map[experimentalmetricmetadata.ResourceID]*metadata.KubernetesMetadata {
+func GetMetadata(hpa *autoscalingv2beta2.HorizontalPodAutoscaler) map[experimentalmetricmetadata.ResourceID]*metadata.KubernetesMetadata {
 	return map[experimentalmetricmetadata.ResourceID]*metadata.KubernetesMetadata{
 		experimentalmetricmetadata.ResourceID(hpa.UID): metadata.GetGenericMetadata(&hpa.ObjectMeta, "HPA"),
 	}

@@ -25,8 +25,6 @@ import (
 	"go.opentelemetry.io/collector/config/confighttp"
 	"go.opentelemetry.io/collector/config/confignet"
 	"go.opentelemetry.io/collector/confmap/confmaptest"
-
-	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/lokireceiver/internal/metadata"
 )
 
 func TestLoadConfig(t *testing.T) {
@@ -40,7 +38,7 @@ func TestLoadConfig(t *testing.T) {
 		expected component.Config
 	}{
 		{
-			id: component.NewIDWithName(metadata.Type, "defaults"),
+			id: component.NewIDWithName(typeStr, "defaults"),
 			expected: &Config{
 				Protocols: Protocols{
 					GRPC: &configgrpc.GRPCServerSettings{
@@ -56,7 +54,7 @@ func TestLoadConfig(t *testing.T) {
 			},
 		},
 		{
-			id: component.NewIDWithName(metadata.Type, "mixed"),
+			id: component.NewIDWithName(typeStr, "mixed"),
 			expected: &Config{
 				Protocols: Protocols{
 					GRPC: &configgrpc.GRPCServerSettings{
@@ -98,7 +96,7 @@ func TestInvalidConfig(t *testing.T) {
 		err string
 	}{
 		{
-			id:  component.NewIDWithName(metadata.Type, "empty"),
+			id:  component.NewIDWithName(typeStr, "empty"),
 			err: "must specify at least one protocol when using the Loki receiver",
 		},
 	}
@@ -113,7 +111,7 @@ func TestInvalidConfig(t *testing.T) {
 			require.NoError(t, component.UnmarshalConfig(sub, cfg))
 
 			err = component.ValidateConfig(cfg)
-			assert.Error(t, err, tt.err)
+			assert.Contains(t, err.Error(), tt.err)
 		})
 	}
 }
@@ -127,7 +125,7 @@ func TestConfigWithUnknownKeysConfig(t *testing.T) {
 		err string
 	}{
 		{
-			id:  component.NewIDWithName(metadata.Type, "extra_keys"),
+			id:  component.NewIDWithName(typeStr, "extra_keys"),
 			err: "'' has invalid keys: foo",
 		},
 	}

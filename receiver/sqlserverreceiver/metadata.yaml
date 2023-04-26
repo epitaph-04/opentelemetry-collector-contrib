@@ -1,4 +1,4 @@
-type: sqlserverreceiver
+name: sqlserverreceiver
 
 resource_attributes:
   sqlserver.database.name:

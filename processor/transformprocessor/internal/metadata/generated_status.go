@@ -6,7 +6,4 @@ import (
 	"go.opentelemetry.io/collector/component"
 )
 
-const (
-	Type      = "transform"
-	Stability = component.StabilityLevelAlpha
-)
+const Stability = component.StabilityLevelAlpha

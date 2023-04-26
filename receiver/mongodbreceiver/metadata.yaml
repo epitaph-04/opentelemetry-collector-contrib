@@ -1,4 +1,4 @@
-type: mongodbreceiver
+name: mongodbreceiver
 
 resource_attributes:
   database:

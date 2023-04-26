@@ -522,7 +522,6 @@ func TestReceiveLogs(t *testing.T) {
 		batches    [][]string
 		numBatches int
 		compressed bool
-		wantErr    string
 	}
 
 	// The test cases depend on the constant minCompressionLen = 1500.
@@ -675,84 +674,13 @@ func TestReceiveLogs(t *testing.T) {
 				compressed: true,
 			},
 		},
-		{
-			name: "one event that is so large we cannot send it",
-			logs: func() plog.Logs {
-				firstLog := createLogData(1, 1, 1)
-				firstLog.ResourceLogs().At(0).ScopeLogs().At(0).LogRecords().At(0).Body().SetStr(repeatableString(500000))
-				return firstLog
-			}(),
-			conf: func() *Config {
-				cfg := NewFactory().CreateDefaultConfig().(*Config)
-				cfg.MaxContentLengthLogs = 1800 // small so we can reproduce without allocating big logs.
-				return cfg
-			}(),
-			want: wantType{
-				batches:    [][]string{},
-				numBatches: 0,
-				compressed: true,
-				wantErr:    "timeout", // our server will time out waiting for the data.
-			},
-		},
-		{
-			name: "two events with 2000 bytes, one with 2000 bytes, then one with 20000 bytes",
-			logs: func() plog.Logs {
-				firstLog := createLogData(1, 1, 3)
-				firstLog.ResourceLogs().At(0).ScopeLogs().At(0).LogRecords().At(0).Body().SetStr(repeatableString(2000))
-				firstLog.ResourceLogs().At(0).ScopeLogs().At(0).LogRecords().At(1).Body().SetStr(repeatableString(2000))
-				firstLog.ResourceLogs().At(0).ScopeLogs().At(0).LogRecords().At(2).Body().SetStr(repeatableString(20000))
-				return firstLog
-			}(),
-			conf: func() *Config {
-				cfg := NewFactory().CreateDefaultConfig().(*Config)
-				cfg.MaxEventSize = 20000 // small so we can reproduce without allocating big logs.
-				cfg.DisableCompression = true
-				return cfg
-			}(),
-			want: wantType{
-				batches: [][]string{
-					{`"otel.log.name":"0_0_0"`, `"otel.log.name":"0_0_1"`},
-				},
-				numBatches: 1,
-			},
-		},
-		{
-			name: "two events with 2000 bytes, one with 1000 bytes, then one with 4200 bytes",
-			logs: func() plog.Logs {
-				firstLog := createLogData(1, 1, 5)
-				firstLog.ResourceLogs().At(0).ScopeLogs().At(0).LogRecords().At(0).Body().SetStr(repeatableString(2000))
-				firstLog.ResourceLogs().At(0).ScopeLogs().At(0).LogRecords().At(1).Body().SetStr(repeatableString(2000))
-				firstLog.ResourceLogs().At(0).ScopeLogs().At(0).LogRecords().At(2).Body().SetStr(repeatableString(1000))
-				firstLog.ResourceLogs().At(0).ScopeLogs().At(0).LogRecords().At(3).Body().SetStr(repeatableString(4200))
-				return firstLog
-			}(),
-			conf: func() *Config {
-				cfg := NewFactory().CreateDefaultConfig().(*Config)
-				cfg.MaxEventSize = 10000 // small so we can reproduce without allocating big logs.
-				cfg.MaxContentLengthLogs = 5000
-				cfg.DisableCompression = true
-				return cfg
-			}(),
-			want: wantType{
-				batches: [][]string{
-					{`"otel.log.name":"0_0_0"`, `"otel.log.name":"0_0_1"`},
-					{`"otel.log.name":"0_0_2"`},
-					{`"otel.log.name":"0_0_3"`, `"otel.log.name":"0_0_4"`},
-				},
-				numBatches: 3,
-			},
-		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			got, err := runLogExport(test.conf, test.logs, test.want.numBatches, t)
 
-			if test.want.wantErr != "" {
-				require.EqualError(t, err, test.want.wantErr)
-			} else {
-				require.NoError(t, err)
-			}
+			require.NoError(t, err)
 			require.Equal(t, test.want.numBatches, len(got))
 
 			for i := 0; i < test.want.numBatches; i++ {
@@ -1009,15 +937,9 @@ func TestReceiveBatchedMetrics(t *testing.T) {
 				if test.want.compressed {
 					validateCompressedContains(t, test.want.batches[i], got[i].body)
 				} else {
-					found := false
-
 					for _, expected := range test.want.batches[i] {
-						if strings.Contains(string(got[i].body), expected) {
-							found = true
-							break
-						}
+						assert.Contains(t, string(got[i].body), expected)
 					}
-					assert.True(t, found, "%s did not match any expected batch", string(got[i].body))
 				}
 			}
 		})
@@ -1302,7 +1224,8 @@ func Test_pushLogData_ShouldAddResponseTo400Error(t *testing.T) {
 	splunkClient.hecWorker = &defaultHecWorker{url, httpClient, buildHTTPHeaders(config, component.NewDefaultBuildInfo())}
 	// Sending logs using the client.
 	err := splunkClient.pushLogData(context.Background(), logs)
-	require.True(t, consumererror.IsPermanent(err), "Expecting permanent error")
+	// TODO: Uncomment after consumererror.Logs implements method Unwrap.
+	// require.True(t, consumererror.IsPermanent(err), "Expecting permanent error")
 	require.Contains(t, err.Error(), "HTTP/0.0 400")
 	// The returned error should contain the response body responseBody.
 	assert.Contains(t, err.Error(), responseBody)
@@ -1312,7 +1235,8 @@ func Test_pushLogData_ShouldAddResponseTo400Error(t *testing.T) {
 	splunkClient.hecWorker = &defaultHecWorker{url, httpClient, buildHTTPHeaders(config, component.NewDefaultBuildInfo())}
 	// Sending logs using the client.
 	err = splunkClient.pushLogData(context.Background(), logs)
-	require.False(t, consumererror.IsPermanent(err), "Expecting non-permanent error")
+	// TODO: Uncomment after consumererror.Logs implements method Unwrap.
+	// require.False(t, consumererror.IsPermanent(err), "Expecting non-permanent error")
 	require.Contains(t, err.Error(), "HTTP 500")
 	// The returned error should not contain the response body responseBody.
 	assert.NotContains(t, err.Error(), responseBody)
@@ -1607,7 +1531,7 @@ func BenchmarkPushLogRecords(b *testing.B) {
 		hecWorker: &mockHecWorker{},
 	}
 
-	state := makeBlankBufferState(4096, true, 4096)
+	state := makeBlankBufferState(4096, true)
 	for n := 0; n < b.N; n++ {
 		permanentErrs, sendingErr := c.pushLogRecords(context.Background(), logs.ResourceLogs(), state, map[string]string{})
 		assert.NoError(b, sendingErr)

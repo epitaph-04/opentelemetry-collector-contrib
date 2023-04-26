@@ -27,7 +27,6 @@ import (
 
 	"github.com/open-telemetry/opentelemetry-collector-contrib/internal/aws/proxy"
 	awsxray "github.com/open-telemetry/opentelemetry-collector-contrib/internal/aws/xray"
-	"github.com/open-telemetry/opentelemetry-collector-contrib/internal/aws/xray/telemetry"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/awsxrayreceiver/internal/translator"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/awsxrayreceiver/internal/udppoller"
 )
@@ -46,7 +45,6 @@ type xrayReceiver struct {
 	settings receiver.CreateSettings
 	consumer consumer.Traces
 	obsrecv  *obsreport.Receiver
-	registry telemetry.Registry
 }
 
 func newReceiver(config *Config,
@@ -91,11 +89,10 @@ func newReceiver(config *Config,
 		settings: set,
 		consumer: consumer,
 		obsrecv:  obsrecv,
-		registry: telemetry.GlobalRegistry(),
 	}, nil
 }
 
-func (x *xrayReceiver) Start(ctx context.Context, _ component.Host) error {
+func (x *xrayReceiver) Start(ctx context.Context, host component.Host) error {
 	// TODO: Might want to pass `host` into read() below to report a fatal error
 	x.poller.Start(ctx)
 	go x.start()
@@ -122,7 +119,7 @@ func (x *xrayReceiver) start() {
 	incomingSegments := x.poller.SegmentsChan()
 	for seg := range incomingSegments {
 		ctx := x.obsrecv.StartTracesOp(seg.Ctx)
-		traces, totalSpanCount, err := translator.ToTraces(seg.Payload, x.registry.LoadOrNop(x.settings.ID))
+		traces, totalSpanCount, err := translator.ToTraces(seg.Payload)
 		if err != nil {
 			x.settings.Logger.Warn("X-Ray segment to OT traces conversion failed", zap.Error(err))
 			x.obsrecv.EndTracesOp(ctx, awsxray.TypeStr, totalSpanCount, err)

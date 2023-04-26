@@ -1,8 +1,0 @@
-type: groupbyattrs
-
-status:
-  class: processor
-  stability: beta
-  pipelines: [traces, metrics, logs]
-  distributions: [contrib]
-  warnings: []

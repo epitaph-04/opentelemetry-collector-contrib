@@ -22,8 +22,13 @@ import (
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/processor"
 	"go.opentelemetry.io/collector/processor/processorhelper"
+)
 
-	"github.com/open-telemetry/opentelemetry-collector-contrib/processor/deltatorateprocessor/internal/metadata"
+const (
+	// The value of "type" key in configuration.
+	typeStr = "deltatorate"
+	// The stability level of the processor.
+	stability = component.StabilityLevelDevelopment
 )
 
 var processorCapabilities = consumer.Capabilities{MutatesData: true}
@@ -31,9 +36,9 @@ var processorCapabilities = consumer.Capabilities{MutatesData: true}
 // NewFactory returns a new factory for the Delta to Rate processor.
 func NewFactory() processor.Factory {
 	return processor.NewFactory(
-		metadata.Type,
+		typeStr,
 		createDefaultConfig,
-		processor.WithMetrics(createMetricsProcessor, metadata.Stability))
+		processor.WithMetrics(createMetricsProcessor, stability))
 }
 
 func createDefaultConfig() component.Config {

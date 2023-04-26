@@ -1,4 +1,4 @@
-type: hostmetricsreceiver/process
+name: hostmetricsreceiver/process
 
 sem_conv_version: 1.9.0
 

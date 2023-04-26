@@ -1,7 +1,7 @@
-type: activedirectorydsreceiver
+name: activedirectorydsreceiver
 
 status:
-  class: receiver
+  type: receiver
   stability: beta
   pipelines: [metrics]
   distributions: [contrib]

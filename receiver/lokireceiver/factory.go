@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:generate mdatagen metadata.yaml
-
 package lokireceiver // import "github.com/open-telemetry/opentelemetry-collector-contrib/receiver/lokireceiver"
 
 import (
@@ -25,11 +23,14 @@ import (
 	"go.opentelemetry.io/collector/config/confignet"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/receiver"
-
-	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/lokireceiver/internal/metadata"
 )
 
 const (
+	// The value of "type" key in configuration.
+	typeStr = "loki"
+	// The stability level of the receiver.
+	stability = component.StabilityLevelDevelopment
+
 	defaultGRPCBindEndpoint = "0.0.0.0:3600"
 	defaultHTTPBindEndpoint = "0.0.0.0:3500"
 )
@@ -37,9 +38,9 @@ const (
 // NewFactory return a new receiver.Factory for loki receiver.
 func NewFactory() receiver.Factory {
 	return receiver.NewFactory(
-		metadata.Type,
+		typeStr,
 		createDefaultConfig,
-		receiver.WithLogs(createLogsReceiver, metadata.Stability))
+		receiver.WithLogs(createLogsReceiver, stability))
 }
 
 func createDefaultConfig() component.Config {

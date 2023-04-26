@@ -1,6 +1,6 @@
-type: pprofextension
+name: pprofextension
 
 status:
-  class: extension
+  type: extension
   stability: beta
   distributions: [core, contrib]

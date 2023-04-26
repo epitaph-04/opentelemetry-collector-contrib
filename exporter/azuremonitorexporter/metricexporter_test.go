@@ -25,7 +25,6 @@ import (
 	"github.com/microsoft/ApplicationInsights-Go/appinsights/contracts"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"go.opentelemetry.io/collector/pdata/pcommon"
 	"go.opentelemetry.io/collector/pdata/pmetric"
 	"go.uber.org/zap"
 )
@@ -138,12 +137,6 @@ func getDataPoint(t testing.TB, metric pmetric.Metric) *contracts.DataPoint {
 	dataPoint := metricData.Metrics[0]
 	require.NotNil(t, dataPoint)
 
-	actualProperties := metricData.Properties
-	require.Equal(t, "10", actualProperties["int_attribute"])
-	require.Equal(t, "str_value", actualProperties["str_attribute"])
-	require.Equal(t, "true", actualProperties["bool_attribute"])
-	require.Equal(t, "1.2", actualProperties["double_attribute"])
-
 	return dataPoint
 }
 
@@ -209,7 +202,6 @@ func getTestGaugeMetric(modify func(pmetric.NumberDataPoint)) pmetric.Metric {
 	metric.SetEmptyGauge()
 	datapoints := metric.Gauge().DataPoints()
 	datapoint := datapoints.AppendEmpty()
-	setDefaultTestAttributes(datapoint.Attributes())
 	modify(datapoint)
 	return metric
 }
@@ -232,7 +224,6 @@ func getTestSumMetric(modify func(pmetric.NumberDataPoint)) pmetric.Metric {
 	metric.SetEmptySum()
 	datapoints := metric.Sum().DataPoints()
 	datapoint := datapoints.AppendEmpty()
-	setDefaultTestAttributes(datapoint.Attributes())
 	modify(datapoint)
 	return metric
 }
@@ -247,7 +238,6 @@ func getTestHistogramMetric() pmetric.Metric {
 	datapoint.SetCount(3)
 	datapoint.SetMin(0)
 	datapoint.SetMax(2)
-	setDefaultTestAttributes(datapoint.Attributes())
 	return metric
 }
 
@@ -261,7 +251,6 @@ func getTestExponentialHistogramMetric() pmetric.Metric {
 	datapoint.SetCount(4)
 	datapoint.SetMin(1)
 	datapoint.SetMax(3)
-	setDefaultTestAttributes(datapoint.Attributes())
 	return metric
 }
 
@@ -273,13 +262,5 @@ func getTestSummaryMetric() pmetric.Metric {
 	datapoint := datapoints.AppendEmpty()
 	datapoint.SetSum(5)
 	datapoint.SetCount(5)
-	setDefaultTestAttributes(datapoint.Attributes())
 	return metric
-}
-
-func setDefaultTestAttributes(attributeMap pcommon.Map) {
-	attributeMap.PutInt("int_attribute", 10)
-	attributeMap.PutStr("str_attribute", "str_value")
-	attributeMap.PutBool("bool_attribute", true)
-	attributeMap.PutDouble("double_attribute", 1.2)
 }

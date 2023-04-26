@@ -209,8 +209,8 @@ func (attr *attribute) Unmarshal(parser *confmap.Conf) error {
 }
 
 type metadata struct {
-	// Type of the component.
-	Type string `mapstructure:"type"`
+	// Name of the component.
+	Name string `mapstructure:"name"`
 	// Status information for the component.
 	Status Status `mapstructure:"status"`
 	// SemConvVersion is a version number of OpenTelemetry semantic conventions applied to the scraped metrics.

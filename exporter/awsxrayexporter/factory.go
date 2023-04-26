@@ -21,7 +21,6 @@ import (
 	"go.opentelemetry.io/collector/exporter"
 
 	"github.com/open-telemetry/opentelemetry-collector-contrib/internal/aws/awsutil"
-	"github.com/open-telemetry/opentelemetry-collector-contrib/internal/aws/xray/telemetry"
 )
 
 const (
@@ -51,5 +50,5 @@ func createTracesExporter(
 	cfg component.Config,
 ) (exporter.Traces, error) {
 	eCfg := cfg.(*Config)
-	return newTracesExporter(eCfg, params, &awsutil.Conn{}, telemetry.GlobalRegistry())
+	return newTracesExporter(eCfg, params, &awsutil.Conn{})
 }

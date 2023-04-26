@@ -1,8 +1,8 @@
-type: postgresqlreceiver
+name: postgresqlreceiver
 
 
 status:
-  class: receiver
+  type: receiver
   stability: beta
   pipelines: [metrics]
   distributions: [contrib]

@@ -1,7 +1,7 @@
-type: haproxyreceiver
+name: haproxyreceiver
 
 status:
-  class: receiver
+  type: receiver
   stability: alpha
   pipelines: [metrics]
   distributions: [contrib]

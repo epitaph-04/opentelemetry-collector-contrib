@@ -1,7 +1,7 @@
-type: transform
+name: transform
 
 status:
-  class: processor
+  type: processor
   stability: alpha
   pipelines: [traces, metrics, logs]
   distributions: [contrib]

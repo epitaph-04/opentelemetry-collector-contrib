@@ -17,12 +17,8 @@ package countconnector // import "github.com/open-telemetry/opentelemetry-collec
 import (
 	"fmt"
 
-	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/confmap"
 	"go.uber.org/zap"
-
-	"github.com/open-telemetry/opentelemetry-collector-contrib/internal/filter/filterottl"
-	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl"
 )
 
 // Default metrics are emitted if no conditions are specified.
@@ -67,7 +63,11 @@ func (c *Config) Validate() error {
 		if name == "" {
 			return fmt.Errorf("spans: metric name missing")
 		}
-		if _, err := filterottl.NewBoolExprForSpan(info.Conditions, filterottl.StandardSpanFuncs(), ottl.PropagateError, component.TelemetrySettings{Logger: zap.NewNop()}); err != nil {
+		parser, err := newSpanParser(zap.NewNop())
+		if err != nil {
+			return err
+		}
+		if _, err = parseConditions(parser, info.Conditions); err != nil {
 			return fmt.Errorf("spans condition: metric %q: %w", name, err)
 		}
 		if err := info.validateAttributes(); err != nil {
@@ -78,7 +78,11 @@ func (c *Config) Validate() error {
 		if name == "" {
 			return fmt.Errorf("spanevents: metric name missing")
 		}
-		if _, err := filterottl.NewBoolExprForSpanEvent(info.Conditions, filterottl.StandardSpanEventFuncs(), ottl.PropagateError, component.TelemetrySettings{Logger: zap.NewNop()}); err != nil {
+		parser, err := newSpanEventParser(zap.NewNop())
+		if err != nil {
+			return err
+		}
+		if _, err = parseConditions(parser, info.Conditions); err != nil {
 			return fmt.Errorf("spanevents condition: metric %q: %w", name, err)
 		}
 		if err := info.validateAttributes(); err != nil {
@@ -89,7 +93,11 @@ func (c *Config) Validate() error {
 		if name == "" {
 			return fmt.Errorf("metrics: metric name missing")
 		}
-		if _, err := filterottl.NewBoolExprForMetric(info.Conditions, filterottl.StandardMetricFuncs(), ottl.PropagateError, component.TelemetrySettings{Logger: zap.NewNop()}); err != nil {
+		parser, err := newMetricParser(zap.NewNop())
+		if err != nil {
+			return err
+		}
+		if _, err = parseConditions(parser, info.Conditions); err != nil {
 			return fmt.Errorf("metrics condition: metric %q: %w", name, err)
 		}
 		if len(info.Attributes) > 0 {
@@ -101,7 +109,11 @@ func (c *Config) Validate() error {
 		if name == "" {
 			return fmt.Errorf("datapoints: metric name missing")
 		}
-		if _, err := filterottl.NewBoolExprForDataPoint(info.Conditions, filterottl.StandardDataPointFuncs(), ottl.PropagateError, component.TelemetrySettings{Logger: zap.NewNop()}); err != nil {
+		parser, err := newDataPointParser(zap.NewNop())
+		if err != nil {
+			return err
+		}
+		if _, err = parseConditions(parser, info.Conditions); err != nil {
 			return fmt.Errorf("datapoints condition: metric %q: %w", name, err)
 		}
 		if err := info.validateAttributes(); err != nil {
@@ -112,7 +124,11 @@ func (c *Config) Validate() error {
 		if name == "" {
 			return fmt.Errorf("logs: metric name missing")
 		}
-		if _, err := filterottl.NewBoolExprForLog(info.Conditions, filterottl.StandardLogFuncs(), ottl.PropagateError, component.TelemetrySettings{Logger: zap.NewNop()}); err != nil {
+		parser, err := newLogParser(zap.NewNop())
+		if err != nil {
+			return err
+		}
+		if _, err = parseConditions(parser, info.Conditions); err != nil {
 			return fmt.Errorf("logs condition: metric %q: %w", name, err)
 		}
 		if err := info.validateAttributes(); err != nil {

@@ -6,7 +6,4 @@ import (
 	"go.opentelemetry.io/collector/component"
 )
 
-const (
-	Type      = "activedirectorydsreceiver"
-	Stability = component.StabilityLevelBeta
-)
+const Stability = component.StabilityLevelBeta

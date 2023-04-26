@@ -1,6 +1,6 @@
-type: ecsobserver
+name: ecsobserver
 
 status:
-  class: extension
+  type: extension
   stability: beta
   distributions: [contrib]

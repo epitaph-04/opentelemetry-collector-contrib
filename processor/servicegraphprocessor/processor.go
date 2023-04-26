@@ -327,16 +327,20 @@ func (p *serviceGraphProcessor) onExpire(e *store.Edge) {
 	stats.Record(context.Background(), statExpiredEdges.M(1))
 
 	if virtualNodeFeatureGate.IsEnabled() {
-		e.ConnectionType = store.VirtualNode
-		if len(e.ClientService) == 0 && e.Key.SpanIDIsEmpty() {
+		// speculate virtual node before edge get expired.
+		// TODO: We could add some logic to check if the server span is an orphan.
+		// https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/17350#discussion_r1099949579
+		if len(e.ClientService) == 0 {
 			e.ClientService = "user"
-			p.onComplete(e)
 		}
 
 		if len(e.ServerService) == 0 {
 			e.ServerService = p.getPeerHost(p.config.VirtualNodePeerAttributes, e.Peer)
-			p.onComplete(e)
 		}
+
+		e.ConnectionType = store.VirtualNode
+
+		p.onComplete(e)
 	}
 }
 
@@ -406,7 +410,7 @@ func buildDimensions(e *store.Edge) pcommon.Map {
 func (p *serviceGraphProcessor) buildMetrics() (pmetric.Metrics, error) {
 	m := pmetric.NewMetrics()
 	ilm := m.ResourceMetrics().AppendEmpty().ScopeMetrics().AppendEmpty()
-	ilm.Scope().SetName("traces_service_graph")
+	ilm.Scope().SetName("traces_service_graph_servicegraphprocessor")
 
 	// Obtain write lock to reset data
 	p.seriesMutex.Lock()

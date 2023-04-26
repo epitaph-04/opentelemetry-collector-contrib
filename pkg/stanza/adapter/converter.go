@@ -20,12 +20,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"hash/fnv"
 	"math"
 	"runtime"
 	"sort"
 	"sync"
 
-	"github.com/cespare/xxhash/v2"
 	"go.opentelemetry.io/collector/pdata/pcommon"
 	"go.opentelemetry.io/collector/pdata/plog"
 	"go.uber.org/zap"
@@ -138,22 +138,41 @@ func (c *Converter) workerLoop() {
 				return
 			}
 
-			resourceHashToIdx := make(map[uint64]int)
+			// Maps to keep track of resource information to allow rebuilding in plog structures
+			resourceEntriesLookup := make(map[uint64][]*entry.Entry)
+			resourceAttrsLookup := make(map[uint64]map[string]interface{})
 
-			pLogs := plog.NewLogs()
-			var sl plog.ScopeLogs
+			// Iterate over the entries and populate the resource lookup maps
 			for _, e := range entries {
 				resourceID := HashResource(e.Resource)
-				resourceIdx, ok := resourceHashToIdx[resourceID]
+				resourceEntries, ok := resourceEntriesLookup[resourceID]
 				if !ok {
-					resourceHashToIdx[resourceID] = pLogs.ResourceLogs().Len()
-					rl := pLogs.ResourceLogs().AppendEmpty()
-					upsertToMap(e.Resource, rl.Resource().Attributes())
-					sl = rl.ScopeLogs().AppendEmpty()
-				} else {
-					sl = pLogs.ResourceLogs().At(resourceIdx).ScopeLogs().At(0)
+					resourceEntries = make([]*entry.Entry, 0)
+					resourceAttrsLookup[resourceID] = e.Resource
 				}
-				convertInto(e, sl.LogRecords().AppendEmpty())
+
+				resourceEntriesLookup[resourceID] = append(resourceEntries, e)
+			}
+
+			// Using the resource lookup maps, build the plog.Logs structure and convert entries into plogs
+			pLogs := plog.NewLogs()
+			for resourceID, resourceEntries := range resourceEntriesLookup {
+				logs := pLogs.ResourceLogs()
+				rls := logs.AppendEmpty()
+				resource := rls.Resource()
+
+				// Create the resource from the attributes
+				resourceAttrs := resourceAttrsLookup[resourceID]
+				upsertToMap(resourceAttrs, resource.Attributes())
+
+				ills := rls.ScopeLogs()
+				sls := ills.AppendEmpty()
+
+				// Convert standard entries into plogs for the resource
+				for _, e := range resourceEntries {
+					lr := sls.LogRecords().AppendEmpty()
+					convertInto(e, lr)
+				}
 			}
 
 			// Send plogs directly to flushChan
@@ -246,7 +265,7 @@ func convertInto(ent *entry.Entry, dest plog.LogRecord) {
 		copy(buffer[0:8], ent.SpanID)
 		dest.SetSpanID(buffer)
 	}
-	if ent.TraceFlags != nil && len(ent.TraceFlags) > 0 {
+	if ent.TraceFlags != nil {
 		// The 8 least significant bits are the trace flags as defined in W3C Trace
 		// Context specification. Don't override the 24 reserved bits.
 		flags := uint32(ent.TraceFlags[0])
@@ -379,24 +398,8 @@ var defaultSevTextMap = map[entry.Severity]string{
 var pairSep = []byte{0xfe}
 
 // emptyResourceID is the ID returned by HashResource when it is passed an empty resource.
-// This specific number is chosen as it is the starting offset of xxHash.
-const emptyResourceID uint64 = 17241709254077376921
-
-type hashWriter struct {
-	h        *xxhash.Digest
-	keySlice []string
-}
-
-func newHashWriter() *hashWriter {
-	return &hashWriter{
-		h:        xxhash.New(),
-		keySlice: make([]string, 0),
-	}
-}
-
-var hashWriterPool = &sync.Pool{
-	New: func() interface{} { return newHashWriter() },
-}
+// This specific number is chosen as it is the starting offset of fnv64.
+const emptyResourceID uint64 = 14695981039346656037
 
 // HashResource will hash an entry.Entry.Resource
 func HashResource(resource map[string]interface{}) uint64 {
@@ -404,39 +407,39 @@ func HashResource(resource map[string]interface{}) uint64 {
 		return emptyResourceID
 	}
 
-	hw := hashWriterPool.Get().(*hashWriter)
-	defer hashWriterPool.Put(hw)
-	hw.h.Reset()
-	hw.keySlice = hw.keySlice[:0]
+	var fnvHash = fnv.New64a()
+	var fnvHashOut = make([]byte, 0, 16)
+	var keySlice = make([]string, 0, len(resource))
 
 	for k := range resource {
-		hw.keySlice = append(hw.keySlice, k)
+		keySlice = append(keySlice, k)
 	}
 
-	if len(hw.keySlice) > 1 {
+	if len(keySlice) > 1 {
 		// In order for this to be deterministic, we need to sort the map. Using range, like above,
 		// has no guarantee about order.
-		sort.Strings(hw.keySlice)
+		sort.Strings(keySlice)
 	}
 
-	for _, k := range hw.keySlice {
-		hw.h.Write([]byte(k)) //nolint:errcheck
-		hw.h.Write(pairSep)   //nolint:errcheck
+	for _, k := range keySlice {
+		fnvHash.Write([]byte(k))
+		fnvHash.Write(pairSep)
 
 		switch t := resource[k].(type) {
 		case string:
-			hw.h.Write([]byte(t)) //nolint:errcheck
+			fnvHash.Write([]byte(t))
 		case []byte:
-			hw.h.Write(t) //nolint:errcheck
+			fnvHash.Write(t)
 		case bool, int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, float32, float64:
-			binary.Write(hw.h, binary.BigEndian, t) // nolint - nothing to do about it
+			binary.Write(fnvHash, binary.BigEndian, t) // nolint - nothing to do about it
 		default:
 			b, _ := json.Marshal(t)
-			hw.h.Write(b) //nolint:errcheck
+			fnvHash.Write(b)
 		}
 
-		hw.h.Write(pairSep) //nolint:errcheck
+		fnvHash.Write(pairSep)
 	}
 
-	return hw.h.Sum64()
+	fnvHashOut = fnvHash.Sum(fnvHashOut)
+	return binary.BigEndian.Uint64(fnvHashOut)
 }

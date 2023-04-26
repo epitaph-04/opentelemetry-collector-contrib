@@ -23,6 +23,6 @@ type Status struct {
 	Stability     string   `mapstructure:"stability"`
 	Pipelines     []string `mapstructure:"pipelines"`
 	Distributions []string `mapstructure:"distributions"`
-	Class         string   `mapstructure:"class"`
+	Type          string   `mapstructure:"type"`
 	Warnings      []string `mapstructure:"warnings"`
 }

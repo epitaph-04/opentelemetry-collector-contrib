@@ -22,8 +22,6 @@ import (
 	"go.opentelemetry.io/collector/consumer"
 
 	"github.com/open-telemetry/opentelemetry-collector-contrib/internal/filter/expr"
-	"github.com/open-telemetry/opentelemetry-collector-contrib/internal/filter/filterottl"
-	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl/contexts/ottldatapoint"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl/contexts/ottllog"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl/contexts/ottlmetric"
@@ -62,6 +60,10 @@ func createTracesToMetrics(
 	c := cfg.(*Config)
 
 	spanMetricDefs := make(map[string]metricDef[ottlspan.TransformContext], len(c.Spans))
+	spanParser, err := newSpanParser(set.TelemetrySettings.Logger)
+	if err != nil {
+		return nil, err
+	}
 	for name, info := range c.Spans {
 		md := metricDef[ottlspan.TransformContext]{
 			desc:  info.Description,
@@ -69,13 +71,17 @@ func createTracesToMetrics(
 		}
 		if len(info.Conditions) > 0 {
 			// Error checked in Config.Validate()
-			condition, _ := filterottl.NewBoolExprForSpan(info.Conditions, filterottl.StandardSpanFuncs(), ottl.PropagateError, set.TelemetrySettings)
+			condition, _ := parseConditions(spanParser, info.Conditions)
 			md.condition = condition
 		}
 		spanMetricDefs[name] = md
 	}
 
 	spanEventMetricDefs := make(map[string]metricDef[ottlspanevent.TransformContext], len(c.SpanEvents))
+	spanEventParser, err := newSpanEventParser(set.TelemetrySettings.Logger)
+	if err != nil {
+		return nil, err
+	}
 	for name, info := range c.SpanEvents {
 		md := metricDef[ottlspanevent.TransformContext]{
 			desc:  info.Description,
@@ -83,7 +89,7 @@ func createTracesToMetrics(
 		}
 		if len(info.Conditions) > 0 {
 			// Error checked in Config.Validate()
-			condition, _ := filterottl.NewBoolExprForSpanEvent(info.Conditions, filterottl.StandardSpanEventFuncs(), ottl.PropagateError, set.TelemetrySettings)
+			condition, _ := parseConditions(spanEventParser, info.Conditions)
 			md.condition = condition
 		}
 		spanEventMetricDefs[name] = md
@@ -106,19 +112,27 @@ func createMetricsToMetrics(
 	c := cfg.(*Config)
 
 	metricMetricDefs := make(map[string]metricDef[ottlmetric.TransformContext], len(c.Metrics))
+	metricParser, err := newMetricParser(set.TelemetrySettings.Logger)
+	if err != nil {
+		return nil, err
+	}
 	for name, info := range c.Metrics {
 		md := metricDef[ottlmetric.TransformContext]{
 			desc: info.Description,
 		}
 		if len(info.Conditions) > 0 {
 			// Error checked in Config.Validate()
-			condition, _ := filterottl.NewBoolExprForMetric(info.Conditions, filterottl.StandardMetricFuncs(), ottl.PropagateError, set.TelemetrySettings)
+			condition, _ := parseConditions(metricParser, info.Conditions)
 			md.condition = condition
 		}
 		metricMetricDefs[name] = md
 	}
 
 	dataPointMetricDefs := make(map[string]metricDef[ottldatapoint.TransformContext], len(c.DataPoints))
+	dataPointParser, err := newDataPointParser(set.TelemetrySettings.Logger)
+	if err != nil {
+		return nil, err
+	}
 	for name, info := range c.DataPoints {
 		md := metricDef[ottldatapoint.TransformContext]{
 			desc:  info.Description,
@@ -126,7 +140,7 @@ func createMetricsToMetrics(
 		}
 		if len(info.Conditions) > 0 {
 			// Error checked in Config.Validate()
-			condition, _ := filterottl.NewBoolExprForDataPoint(info.Conditions, filterottl.StandardDataPointFuncs(), ottl.PropagateError, set.TelemetrySettings)
+			condition, _ := parseConditions(dataPointParser, info.Conditions)
 			md.condition = condition
 		}
 		dataPointMetricDefs[name] = md
@@ -149,6 +163,10 @@ func createLogsToMetrics(
 	c := cfg.(*Config)
 
 	metricDefs := make(map[string]metricDef[ottllog.TransformContext], len(c.Logs))
+	logParser, err := newLogParser(set.TelemetrySettings.Logger)
+	if err != nil {
+		return nil, err
+	}
 	for name, info := range c.Logs {
 		md := metricDef[ottllog.TransformContext]{
 			desc:  info.Description,
@@ -156,7 +174,7 @@ func createLogsToMetrics(
 		}
 		if len(info.Conditions) > 0 {
 			// Error checked in Config.Validate()
-			condition, _ := filterottl.NewBoolExprForLog(info.Conditions, filterottl.StandardLogFuncs(), ottl.PropagateError, set.TelemetrySettings)
+			condition, _ := parseConditions(logParser, info.Conditions)
 			md.condition = condition
 		}
 		metricDefs[name] = md

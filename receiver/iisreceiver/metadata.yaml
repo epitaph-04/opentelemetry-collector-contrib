@@ -1,4 +1,4 @@
-type: iisreceiver
+name: iisreceiver
 
 resource_attributes:
   iis.site:

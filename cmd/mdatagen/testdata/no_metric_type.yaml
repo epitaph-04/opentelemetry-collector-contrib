@@ -1,4 +1,4 @@
-type: metricreceiver
+name: metricreceiver
 metrics:
   system.cpu.time:
     enabled: true

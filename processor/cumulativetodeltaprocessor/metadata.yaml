@@ -1,7 +1,7 @@
-type: cumulativetodelta
+name: cumulativetodelta
 
 status:
-  class: processor
+  type: processor
   stability: beta
   pipelines: [metrics]
   distributions: [contrib]

@@ -32,8 +32,8 @@ import (
 func newLogsExporter(cfg component.Config, set exp.CreateSettings) (*logsExporter, error) {
 	oCfg := cfg.(*Config)
 
-	if isEmpty(oCfg.Domain) && isEmpty(oCfg.Logs.Endpoint) {
-		return nil, errors.New("coralogix exporter config requires `domain` or `logs.endpoint` configuration")
+	if oCfg.Logs.Endpoint == "" || oCfg.Logs.Endpoint == "https://" || oCfg.Logs.Endpoint == "http://" {
+		return nil, errors.New("coralogix exporter config requires `logs.endpoint` configuration")
 	}
 	userAgent := fmt.Sprintf("%s/%s (%s/%s)",
 		set.BuildInfo.Description, set.BuildInfo.Version, runtime.GOOS, runtime.GOARCH)
@@ -56,16 +56,8 @@ type logsExporter struct {
 }
 
 func (e *logsExporter) start(ctx context.Context, host component.Host) (err error) {
-	switch {
-	case !isEmpty(e.config.Logs.Endpoint):
-		if e.clientConn, err = e.config.Logs.ToClientConn(ctx, host, e.settings, grpc.WithUserAgent(e.userAgent)); err != nil {
-			return err
-		}
-	case !isEmpty(e.config.Domain):
-
-		if e.clientConn, err = e.config.getDomainGrpcSettings().ToClientConn(ctx, host, e.settings, grpc.WithUserAgent(e.userAgent)); err != nil {
-			return err
-		}
+	if e.clientConn, err = e.config.Logs.ToClientConn(ctx, host, e.settings, grpc.WithUserAgent(e.userAgent)); err != nil {
+		return err
 	}
 
 	e.logExporter = plogotlp.NewGRPCClient(e.clientConn)

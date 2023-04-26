@@ -119,7 +119,7 @@ receivers:
     config:
       scrape_configs:
         - job_name: 'test'
-          scrape_interval: 100ms
+          scrape_interval: 2ms
           static_configs:
             - targets: [%q]
 

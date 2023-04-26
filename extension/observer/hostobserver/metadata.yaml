@@ -1,6 +1,6 @@
-type: hostobserver
+name: hostobserver
 
 status:
-  class: extension
+  type: extension
   stability: beta
   distributions: [contrib]

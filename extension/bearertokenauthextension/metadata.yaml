@@ -1,6 +1,6 @@
-type: bearertokenauthextension
+name: bearertokenauthextension
 
 status:
-  class: extension
+  type: extension
   stability: beta
   distributions: [contrib]

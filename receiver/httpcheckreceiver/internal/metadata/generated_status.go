@@ -6,7 +6,4 @@ import (
 	"go.opentelemetry.io/collector/component"
 )
 
-const (
-	Type      = "httpcheckreceiver"
-	Stability = component.StabilityLevelDevelopment
-)
+const Stability = component.StabilityLevelDevelopment

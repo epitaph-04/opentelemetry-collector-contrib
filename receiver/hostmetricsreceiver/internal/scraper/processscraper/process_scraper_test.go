@@ -40,7 +40,7 @@ import (
 )
 
 func skipTestOnUnsupportedOS(t *testing.T) {
-	if runtime.GOOS != "linux" && runtime.GOOS != "windows" && runtime.GOOS != "darwin" {
+	if runtime.GOOS != "linux" && runtime.GOOS != "windows" {
 		t.Skipf("skipping test on %v", runtime.GOOS)
 	}
 }
@@ -91,11 +91,6 @@ func TestScrape(t *testing.T) {
 	for _, test := range testCases {
 		t.Run(test.name, func(t *testing.T) {
 			metricsBuilderConfig := metadata.DefaultMetricsBuilderConfig()
-			if runtime.GOOS == "darwin" {
-				// disable darwin unsupported default metric
-				metricsBuilderConfig.Metrics.ProcessDiskIo.Enabled = false
-			}
-
 			if test.mutateMetricsSettings != nil {
 				test.mutateMetricsSettings(t, &metricsBuilderConfig.Metrics)
 			}
@@ -134,9 +129,7 @@ func TestScrape(t *testing.T) {
 				assertMetricMissing(t, md.ResourceMetrics(), "process.cpu.utilization")
 			}
 			assertMemoryUsageMetricValid(t, md.ResourceMetrics(), expectedStartTime)
-			if metricsBuilderConfig.Metrics.ProcessDiskIo.Enabled {
-				assertDiskIoMetricValid(t, md.ResourceMetrics(), expectedStartTime)
-			}
+			assertDiskIoMetricValid(t, md.ResourceMetrics(), expectedStartTime)
 			if metricsBuilderConfig.Metrics.ProcessDiskOperations.Enabled {
 				assertDiskOperationsMetricValid(t, md.ResourceMetrics(), expectedStartTime)
 			} else {
@@ -670,7 +663,6 @@ func TestScrapeMetrics_ProcessErrors(t *testing.T) {
 		},
 		{
 			name:     "Exe Error",
-			osFilter: "darwin",
 			exeError: errors.New("err1"),
 			expectedError: func() string {
 				if runtime.GOOS == "windows" {
@@ -682,7 +674,6 @@ func TestScrapeMetrics_ProcessErrors(t *testing.T) {
 		},
 		{
 			name:          "Cmdline Error",
-			osFilter:      "darwin",
 			cmdlineError:  errors.New("err2"),
 			expectedError: `error reading command for process "test" (pid 1): err2`,
 		},
@@ -708,55 +699,46 @@ func TestScrapeMetrics_ProcessErrors(t *testing.T) {
 		},
 		{
 			name:               "Memory Percent Error",
-			osFilter:           "darwin",
 			memoryPercentError: errors.New("err-mem-percent"),
 			expectedError:      `error reading memory utilization for process "test" (pid 1): err-mem-percent`,
 		},
 		{
 			name:            "IO Counters Error",
-			osFilter:        "darwin",
 			ioCountersError: errors.New("err7"),
 			expectedError:   `error reading disk usage for process "test" (pid 1): err7`,
 		},
 		{
 			name:           "Parent PID Error",
-			osFilter:       "darwin",
 			parentPidError: errors.New("err8"),
 			expectedError:  `error reading parent pid for process "test" (pid 1): err8`,
 		},
 		{
 			name:            "Page Faults Error",
-			osFilter:        "darwin",
 			pageFaultsError: errors.New("err-paging"),
 			expectedError:   `error reading memory paging info for process "test" (pid 1): err-paging`,
 		},
 		{
 			name:            "Thread count Error",
-			osFilter:        "darwin",
 			numThreadsError: errors.New("err8"),
 			expectedError:   `error reading thread info for process "test" (pid 1): err8`,
 		},
 		{
 			name:                "Context Switches Error",
-			osFilter:            "darwin",
 			numCtxSwitchesError: errors.New("err9"),
 			expectedError:       `error reading context switch counts for process "test" (pid 1): err9`,
 		},
 		{
 			name:          "File Descriptors Error",
-			osFilter:      "darwin",
 			numFDsError:   errors.New("err10"),
 			expectedError: `error reading open file descriptor count for process "test" (pid 1): err10`,
 		},
 		{
 			name:          "Signals Pending Error",
-			osFilter:      "darwin",
 			rlimitError:   errors.New("err-rlimit"),
 			expectedError: `error reading pending signals for process "test" (pid 1): err-rlimit`,
 		},
 		{
 			name:                "Multiple Errors",
-			osFilter:            "darwin",
 			cmdlineError:        errors.New("err2"),
 			usernameError:       errors.New("err3"),
 			createTimeError:     errors.New("err4"),
@@ -784,15 +766,6 @@ func TestScrapeMetrics_ProcessErrors(t *testing.T) {
 		},
 	}
 
-	if runtime.GOOS == "darwin" {
-		darwinTestCase := testCase{
-			name:          "Darwin Cmdline Error",
-			cmdlineError:  errors.New("err2"),
-			expectedError: `error reading process executable for pid 1: err2; error reading command for process "test" (pid 1): err2`,
-		}
-		testCases = append(testCases, darwinTestCase)
-	}
-
 	for _, test := range testCases {
 		t.Run(test.name, func(t *testing.T) {
 			if test.osFilter == runtime.GOOS {
@@ -800,12 +773,7 @@ func TestScrapeMetrics_ProcessErrors(t *testing.T) {
 			}
 
 			metricsBuilderConfig := metadata.DefaultMetricsBuilderConfig()
-			if runtime.GOOS != "darwin" {
-				enableOptionalMetrics(&metricsBuilderConfig.Metrics)
-			} else {
-				// disable darwin unsupported default metric
-				metricsBuilderConfig.Metrics.ProcessDiskIo.Enabled = false
-			}
+			enableOptionalMetrics(&metricsBuilderConfig.Metrics)
 
 			scraper, err := newProcessScraper(receivertest.NewNopCreateSettings(), &Config{MetricsBuilderConfig: metricsBuilderConfig})
 			require.NoError(t, err, "Failed to create process scraper: %v", err)
@@ -847,13 +815,7 @@ func TestScrapeMetrics_ProcessErrors(t *testing.T) {
 
 			md, err := scraper.scrape(context.Background())
 
-			// In darwin we get the exe path with Cmdline()
-			executableError := test.exeError
-			if runtime.GOOS == "darwin" {
-				executableError = test.cmdlineError
-			}
-
-			expectedResourceMetricsLen, expectedMetricsLen := getExpectedLengthOfReturnedMetrics(test.nameError, executableError, test.timesError, test.memoryInfoError, test.memoryPercentError, test.ioCountersError, test.pageFaultsError, test.numThreadsError, test.numCtxSwitchesError, test.numFDsError, test.rlimitError)
+			expectedResourceMetricsLen, expectedMetricsLen := getExpectedLengthOfReturnedMetrics(test.nameError, test.exeError, test.timesError, test.memoryInfoError, test.memoryPercentError, test.ioCountersError, test.pageFaultsError, test.numThreadsError, test.numCtxSwitchesError, test.numFDsError, test.rlimitError)
 			assert.Equal(t, expectedResourceMetricsLen, md.ResourceMetrics().Len())
 			assert.Equal(t, expectedMetricsLen, md.MetricCount())
 
@@ -861,7 +823,7 @@ func TestScrapeMetrics_ProcessErrors(t *testing.T) {
 			isPartial := scrapererror.IsPartialScrapeError(err)
 			assert.True(t, isPartial)
 			if isPartial {
-				expectedFailures := getExpectedScrapeFailures(test.nameError, executableError, test.timesError, test.memoryInfoError, test.memoryPercentError, test.ioCountersError, test.pageFaultsError, test.numThreadsError, test.numCtxSwitchesError, test.numFDsError, test.rlimitError)
+				expectedFailures := getExpectedScrapeFailures(test.nameError, test.exeError, test.timesError, test.memoryInfoError, test.memoryPercentError, test.ioCountersError, test.pageFaultsError, test.numThreadsError, test.numCtxSwitchesError, test.numFDsError, test.rlimitError)
 				var scraperErr scrapererror.PartialScrapeError
 				require.ErrorAs(t, err, &scraperErr)
 				assert.Equal(t, expectedFailures, scraperErr.Failed)
@@ -886,25 +848,25 @@ func getExpectedLengthOfReturnedMetrics(nameError, exeError, timeError, memError
 	if memError == nil {
 		expectedLen += memoryMetricsLen
 	}
-	if memPercentError == nil && runtime.GOOS != "darwin" {
+	if memPercentError == nil {
 		expectedLen += memoryUtilizationMetricsLen
 	}
-	if diskError == nil && runtime.GOOS != "darwin" {
+	if diskError == nil {
 		expectedLen += diskMetricsLen
 	}
-	if pageFaultsError == nil && runtime.GOOS != "darwin" {
+	if pageFaultsError == nil {
 		expectedLen += pagingMetricsLen
 	}
-	if rlimitError == nil && runtime.GOOS != "darwin" {
+	if rlimitError == nil {
 		expectedLen += signalMetricsLen
 	}
-	if threadError == nil && runtime.GOOS != "darwin" {
+	if threadError == nil {
 		expectedLen += threadMetricsLen
 	}
-	if contextSwitchError == nil && runtime.GOOS != "darwin" {
+	if contextSwitchError == nil {
 		expectedLen += contextSwitchMetricsLen
 	}
-	if fileDescriptorError == nil && runtime.GOOS != "darwin" {
+	if fileDescriptorError == nil {
 		expectedLen += fileDescriptorMetricsLen
 	}
 
@@ -923,13 +885,6 @@ func getExpectedScrapeFailures(nameError, exeError, timeError, memError, memPerc
 		return 1
 	}
 	_, expectedMetricsLen := getExpectedLengthOfReturnedMetrics(nameError, exeError, timeError, memError, memPercentError, diskError, pageFaultsError, threadError, contextSwitchError, fileDescriptorError, rlimitError)
-
-	// excluding unsupported metrics from darwin 'metricsLen'
-	if runtime.GOOS == "darwin" {
-		darwinMetricsLen := cpuMetricsLen + memoryMetricsLen
-		return darwinMetricsLen - expectedMetricsLen
-	}
-
 	return metricsLen - expectedMetricsLen
 }
 
@@ -1018,7 +973,6 @@ func TestScrapeMetrics_MuteErrorFlags(t *testing.T) {
 			handleMock := &processHandleMock{}
 			handleMock.On("Name").Return("test", processNameError)
 			handleMock.On("Exe").Return("test", processNameError)
-			handleMock.On("Cmdline").Return("test", processNameError)
 
 			if config.MuteProcessIOError {
 				handleMock.On("IOCounters").Return("test", errors.New("permission denied"))

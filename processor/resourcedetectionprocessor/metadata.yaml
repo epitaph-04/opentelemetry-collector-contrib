@@ -1,7 +1,7 @@
-type: resourcedetectionprocessor
+name: resourcedetectionprocessor
 
 status:
-  class: processor
+  type: processor
   stability: beta
   pipelines: [traces, metrics, logs]
   distributions: [contrib]

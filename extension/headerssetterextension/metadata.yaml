@@ -1,6 +1,6 @@
-type: headerssetterextension
+name: headerssetterextension
 
 status:
-  class: extension
+  type: extension
   stability: alpha
   distributions: [contrib]
