@@ -1,15 +1,33 @@
 opensearch:
   endpoints: [https://opensearch.example.com:9200]
-opensearch/customname:
+
+opensearch/trace:
   endpoints: [https://opensearch.example.com:9200]
+  traces_index: trace_index
+  user: open
+  password: search
   timeout: 2m
   headers:
     myheader: test
-  index: myindex
   bulk_action: index
   pipeline: mypipeline
-  user: user
+  discover:
+    on_start: true
+  flush:
+    bytes: 10485760
+  retry:
+    max_requests: 5
+
+opensearch/log:
+  endpoints: [https://opensearch.example.com:9200]
+  logs_index: my_log_index
+  user: open
   password: search
+  timeout: 2m
+  headers:
+    myheader: test
+  bulk_action: index
+  pipeline: mypipeline
   discover:
     on_start: true
   flush:

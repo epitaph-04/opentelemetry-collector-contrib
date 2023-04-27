@@ -1,35 +1,18 @@
-// Copyright 2020, OpenTelemetry Authors
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
-// Package opensearchexporter contains an opentelemetry-collector exporter
-// for OpenSearch.
-package opensearchexporter // import "github.com/open-telemetry/opentelemetry-collector-contrib/exporter/opensearchexporter"
+package opensearchexporter
 
 import (
 	"bytes"
 	"context"
 	"fmt"
 	"go.opentelemetry.io/collector/pdata/pcommon"
-	"go.opentelemetry.io/collector/pdata/plog"
+	"go.opentelemetry.io/collector/pdata/ptrace"
 	"io"
 
-	//"go.opentelemetry.io/collector/model/pdata"
 	"go.uber.org/multierr"
 	"go.uber.org/zap"
 )
 
-type opensearchLogsExporter struct {
+type opensearchTracesExporter struct {
 	logger *zap.Logger
 
 	index       string
@@ -41,7 +24,7 @@ type opensearchLogsExporter struct {
 	bulkAction  string
 }
 
-func newLogsExporter(logger *zap.Logger, cfg *Config) (*opensearchLogsExporter, error) {
+func newTracesExporter(logger *zap.Logger, cfg *Config) (*opensearchTracesExporter, error) {
 	if err := cfg.Validate(); err != nil {
 		return nil, err
 	}
@@ -67,43 +50,37 @@ func newLogsExporter(logger *zap.Logger, cfg *Config) (*opensearchLogsExporter, 
 		model.flattenAttributes = true
 	}
 
-	indexStr := cfg.LogsIndex
-	if cfg.Index != "" {
-		indexStr = cfg.Index
-	}
-
-	return &opensearchLogsExporter{
+	return &opensearchTracesExporter{
 		logger:      logger,
 		client:      client,
 		bulkIndexer: bulkIndexer,
 
-		index:       indexStr,
+		index:       cfg.TracesIndex,
 		bulkAction:  cfg.BulkAction,
 		maxAttempts: maxAttempts,
 		model:       model,
 	}, nil
 }
 
-func (e *opensearchLogsExporter) Shutdown(ctx context.Context) error {
+func (e *opensearchTracesExporter) Shutdown(ctx context.Context) error {
 	return e.bulkIndexer.Close(ctx)
 }
 
-func (e *opensearchLogsExporter) pushLogsData(ctx context.Context, ld plog.Logs) error {
+func (e *opensearchTracesExporter) pushTraceData(ctx context.Context, td ptrace.Traces) error {
 	var errs []error
 
-	rls := ld.ResourceLogs()
+	rls := td.ResourceSpans()
 	for i := 0; i < rls.Len(); i++ {
 		rl := rls.At(i)
 		resource := rl.Resource()
-		ills := rl.ScopeLogs()
+		ills := rl.ScopeSpans()
 		for j := 0; j < ills.Len(); j++ {
-			logs := ills.At(j).LogRecords()
-			for k := 0; k < logs.Len(); k++ {
-				if err := e.pushLogRecord(ctx, resource, logs.At(k)); err != nil {
+			spans := ills.At(j).Spans()
+			for k := 0; k < spans.Len(); k++ {
+				if err := e.pushTraceRecord(ctx, resource, spans.At(k)); err != nil {
 					if cerr := ctx.Err(); cerr != nil {
 						return cerr
 					}
-
 					errs = append(errs, err)
 				}
 			}
@@ -113,15 +90,15 @@ func (e *opensearchLogsExporter) pushLogsData(ctx context.Context, ld plog.Logs)
 	return multierr.Combine(errs...)
 }
 
-func (e *opensearchLogsExporter) pushLogRecord(ctx context.Context, resource pcommon.Resource, record plog.LogRecord) error {
-	document, err := e.model.encodeLog(resource, record)
+func (e *opensearchTracesExporter) pushTraceRecord(ctx context.Context, resource pcommon.Resource, record ptrace.Span) error {
+	document, err := e.model.encodeSpan(resource, record)
 	if err != nil {
-		return fmt.Errorf("failed to encode log event: %w", err)
+		return fmt.Errorf("failed to encode trace record: %w", err)
 	}
 	return e.pushEvent(ctx, document)
 }
 
-func (e *opensearchLogsExporter) pushEvent(ctx context.Context, document []byte) error {
+func (e *opensearchTracesExporter) pushEvent(ctx context.Context, document []byte) error {
 	attempts := 1
 	body := bytes.NewReader(document)
 	item := osBulkIndexerItem{Action: e.bulkAction, Index: e.index, Body: body}

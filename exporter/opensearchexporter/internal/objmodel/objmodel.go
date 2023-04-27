@@ -174,7 +174,7 @@ func (doc *Document) AddAttribute(key string, attribute pcommon.Value) {
 	case pcommon.ValueTypeMap:
 		doc.AddAttributes(key, attribute.Map())
 	default:
-		doc.Add(key+".value", ValueFromAttribute(attribute))
+		doc.Add(key, ValueFromAttribute(attribute))
 	}
 }
 
