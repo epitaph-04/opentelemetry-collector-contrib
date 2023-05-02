@@ -32,6 +32,7 @@ require (
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/lokiexporter v0.73.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/mezmoexporter v0.73.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/opencensusexporter v0.73.0
+	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/opensearchexporter v0.73.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/parquetexporter v0.73.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/prometheusexporter v0.73.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/prometheusremotewriteexporter v0.73.0
@@ -507,6 +508,7 @@ require (
 	github.com/opencontainers/runtime-spec v1.0.3-0.20220909204839-494a5a6aca78 // indirect
 	github.com/opencontainers/selinux v1.10.1 // indirect
 	github.com/openlyinc/pointy v1.2.0 // indirect
+	github.com/opensearch-project/opensearch-go v1.1.0 // indirect
 	github.com/openshift/api v3.9.0+incompatible // indirect
 	github.com/openshift/client-go v0.0.0-20210521082421-73d9475a9142 // indirect
 	github.com/opentracing/opentracing-go v1.2.0 // indirect
@@ -602,7 +604,7 @@ require (
 	go.opentelemetry.io/otel/trace v1.14.0 // indirect
 	go.uber.org/atomic v1.10.0 // indirect
 	go.uber.org/goleak v1.2.1 // indirect
-	go.uber.org/multierr v1.9.0 // indirect
+	go.uber.org/multierr v1.10.0 // indirect
 	go.uber.org/zap v1.24.0 // indirect
 	golang.org/x/crypto v0.6.0 // indirect
 	golang.org/x/exp v0.0.0-20230224173230-c95f2b4c22f2 // indirect
@@ -761,6 +763,8 @@ replace github.com/open-telemetry/opentelemetry-collector-contrib/exporter/tanzu
 replace github.com/open-telemetry/opentelemetry-collector-contrib/exporter/tencentcloudlogserviceexporter => ./exporter/tencentcloudlogserviceexporter
 
 replace github.com/open-telemetry/opentelemetry-collector-contrib/exporter/elasticsearchexporter => ./exporter/elasticsearchexporter
+
+replace github.com/open-telemetry/opentelemetry-collector-contrib/exporter/opensearchexporter => ./exporter/opensearchexporter
 
 replace github.com/open-telemetry/opentelemetry-collector-contrib/exporter/zipkinexporter => ./exporter/zipkinexporter
 

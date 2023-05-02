@@ -48,6 +48,7 @@ require (
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/lokiexporter v0.73.0 // indirect
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/mezmoexporter v0.73.0 // indirect
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/opencensusexporter v0.73.0 // indirect
+	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/opensearchexporter v0.73.0 // indirect
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/parquetexporter v0.73.0 // indirect
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/prometheusexporter v0.73.0 // indirect
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/prometheusremotewriteexporter v0.73.0 // indirect
@@ -706,6 +707,8 @@ replace github.com/open-telemetry/opentelemetry-collector-contrib/exporter/datad
 replace github.com/open-telemetry/opentelemetry-collector-contrib/exporter/dynatraceexporter => ../../exporter/dynatraceexporter
 
 replace github.com/open-telemetry/opentelemetry-collector-contrib/exporter/elasticsearchexporter => ../../exporter/elasticsearchexporter
+
+replace github.com/open-telemetry/opentelemetry-collector-contrib/exporter/opensearchexporter => ../../exporter/opensearchexporter
 
 replace github.com/open-telemetry/opentelemetry-collector-contrib/exporter/f5cloudexporter => ../../exporter/f5cloudexporter
 
