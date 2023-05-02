@@ -44,7 +44,7 @@ func (m *encodeModel) encodeLog(resource pcommon.Resource, record plog.LogRecord
 	if m.flattenAttributes {
 		document = objmodel.DocumentFromAttributes(resource.Attributes())
 	} else {
-		document.AddAttributes("Attributes", resource.Attributes())
+		document.AddAttributes("Resource", resource.Attributes())
 	}
 	document.AddTimestamp("@timestamp", record.Timestamp()) // We use @timestamp in order to ensure that we can index if the default data stream logs template is used.
 	document.AddTraceID("TraceId", record.TraceID())
