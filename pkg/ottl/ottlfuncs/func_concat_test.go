@@ -19,7 +19,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"go.opentelemetry.io/collector/pdata/pcommon"
 
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl"
 )
@@ -27,13 +26,13 @@ import (
 func Test_concat(t *testing.T) {
 	tests := []struct {
 		name      string
-		vals      []ottl.StandardStringLikeGetter[interface{}]
+		vals      []ottl.StandardGetSetter[interface{}]
 		delimiter string
 		expected  string
 	}{
 		{
 			name: "concat strings",
-			vals: []ottl.StandardStringLikeGetter[interface{}]{
+			vals: []ottl.StandardGetSetter[interface{}]{
 				{
 					Getter: func(ctx context.Context, tCtx interface{}) (interface{}, error) {
 						return "hello", nil
@@ -50,7 +49,7 @@ func Test_concat(t *testing.T) {
 		},
 		{
 			name: "nil",
-			vals: []ottl.StandardStringLikeGetter[interface{}]{
+			vals: []ottl.StandardGetSetter[interface{}]{
 				{
 					Getter: func(ctx context.Context, tCtx interface{}) (interface{}, error) {
 						return "hello", nil
@@ -72,7 +71,7 @@ func Test_concat(t *testing.T) {
 		},
 		{
 			name: "integers",
-			vals: []ottl.StandardStringLikeGetter[interface{}]{
+			vals: []ottl.StandardGetSetter[interface{}]{
 				{
 					Getter: func(ctx context.Context, tCtx interface{}) (interface{}, error) {
 						return "hello", nil
@@ -89,7 +88,7 @@ func Test_concat(t *testing.T) {
 		},
 		{
 			name: "floats",
-			vals: []ottl.StandardStringLikeGetter[interface{}]{
+			vals: []ottl.StandardGetSetter[interface{}]{
 				{
 					Getter: func(ctx context.Context, tCtx interface{}) (interface{}, error) {
 						return "hello", nil
@@ -106,7 +105,7 @@ func Test_concat(t *testing.T) {
 		},
 		{
 			name: "booleans",
-			vals: []ottl.StandardStringLikeGetter[interface{}]{
+			vals: []ottl.StandardGetSetter[interface{}]{
 				{
 					Getter: func(ctx context.Context, tCtx interface{}) (interface{}, error) {
 						return "hello", nil
@@ -123,7 +122,7 @@ func Test_concat(t *testing.T) {
 		},
 		{
 			name: "byte slices",
-			vals: []ottl.StandardStringLikeGetter[interface{}]{
+			vals: []ottl.StandardGetSetter[interface{}]{
 				{
 					Getter: func(ctx context.Context, tCtx interface{}) (interface{}, error) {
 						return []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0e, 0xd2, 0xe6, 0x3c, 0xbe, 0x71, 0xf5, 0xa8}, nil
@@ -134,50 +133,54 @@ func Test_concat(t *testing.T) {
 			expected:  "00000000000000000ed2e63cbe71f5a8",
 		},
 		{
-			name: "pcommon.Slice",
-			vals: []ottl.StandardStringLikeGetter[interface{}]{
+			name: "non-byte slices",
+			vals: []ottl.StandardGetSetter[interface{}]{
 				{
 					Getter: func(ctx context.Context, tCtx interface{}) (interface{}, error) {
-						s := pcommon.NewSlice()
-						_ = s.FromRaw([]any{1, 2})
-						return s, nil
-					},
-				},
-				{
-					Getter: func(ctx context.Context, tCtx interface{}) (interface{}, error) {
-						s := pcommon.NewSlice()
-						_ = s.FromRaw([]any{3, 4})
-						return s, nil
+						return []int64{1, 2, 3, 4, 5, 6, 7, 8, 9, 0}, nil
 					},
 				},
 			},
-			delimiter: ",",
-			expected:  "[1,2],[3,4]",
+			delimiter: "",
+			expected:  "",
 		},
 		{
 			name: "maps",
-			vals: []ottl.StandardStringLikeGetter[interface{}]{
+			vals: []ottl.StandardGetSetter[interface{}]{
 				{
 					Getter: func(ctx context.Context, tCtx interface{}) (interface{}, error) {
-						m := pcommon.NewMap()
-						m.PutStr("a", "b")
-						return m, nil
-					},
-				},
-				{
-					Getter: func(ctx context.Context, tCtx interface{}) (interface{}, error) {
-						m := pcommon.NewMap()
-						m.PutStr("c", "d")
-						return m, nil
+						return map[string]string{"key": "value"}, nil
 					},
 				},
 			},
-			delimiter: ",",
-			expected:  `{"a":"b"},{"c":"d"}`,
+			delimiter: "",
+			expected:  "",
+		},
+		{
+			name: "unprintable value in the middle",
+			vals: []ottl.StandardGetSetter[interface{}]{
+				{
+					Getter: func(ctx context.Context, tCtx interface{}) (interface{}, error) {
+						return "hello", nil
+					},
+				},
+				{
+					Getter: func(ctx context.Context, tCtx interface{}) (interface{}, error) {
+						return map[string]string{"key": "value"}, nil
+					},
+				},
+				{
+					Getter: func(ctx context.Context, tCtx interface{}) (interface{}, error) {
+						return "world", nil
+					},
+				},
+			},
+			delimiter: "-",
+			expected:  "hello--world",
 		},
 		{
 			name: "empty string values",
-			vals: []ottl.StandardStringLikeGetter[interface{}]{
+			vals: []ottl.StandardGetSetter[interface{}]{
 				{
 					Getter: func(ctx context.Context, tCtx interface{}) (interface{}, error) {
 						return "", nil
@@ -199,7 +202,7 @@ func Test_concat(t *testing.T) {
 		},
 		{
 			name: "single argument",
-			vals: []ottl.StandardStringLikeGetter[interface{}]{
+			vals: []ottl.StandardGetSetter[interface{}]{
 				{
 					Getter: func(ctx context.Context, tCtx interface{}) (interface{}, error) {
 						return "hello", nil
@@ -211,20 +214,20 @@ func Test_concat(t *testing.T) {
 		},
 		{
 			name:      "no arguments",
-			vals:      []ottl.StandardStringLikeGetter[interface{}]{},
+			vals:      []ottl.StandardGetSetter[interface{}]{},
 			delimiter: "-",
 			expected:  "",
 		},
 		{
 			name:      "no arguments with an empty delimiter",
-			vals:      []ottl.StandardStringLikeGetter[interface{}]{},
+			vals:      []ottl.StandardGetSetter[interface{}]{},
 			delimiter: "",
 			expected:  "",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			getters := make([]ottl.StringLikeGetter[interface{}], len(tt.vals))
+			getters := make([]ottl.Getter[interface{}], len(tt.vals))
 
 			for i, val := range tt.vals {
 				getters[i] = val
@@ -237,16 +240,4 @@ func Test_concat(t *testing.T) {
 			assert.Equal(t, tt.expected, result)
 		})
 	}
-}
-
-func Test_concat_error(t *testing.T) {
-	target := &ottl.StandardStringLikeGetter[interface{}]{
-		Getter: func(ctx context.Context, tCtx interface{}) (interface{}, error) {
-			return make(chan int), nil
-		},
-	}
-	exprFunc, err := Concat[interface{}]([]ottl.StringLikeGetter[interface{}]{target}, "test")
-	assert.NoError(t, err)
-	_, err = exprFunc(context.Background(), nil)
-	assert.Error(t, err)
 }

@@ -29,7 +29,7 @@ const (
 	modeValue = "value"
 )
 
-func ReplaceAllPatterns[K any](target ottl.PMapGetter[K], mode string, regexPattern string, replacement string) (ottl.ExprFunc[K], error) {
+func ReplaceAllPatterns[K any](target ottl.GetSetter[K], mode string, regexPattern string, replacement string) (ottl.ExprFunc[K], error) {
 	compiledPattern, err := regexp.Compile(regexPattern)
 	if err != nil {
 		return nil, fmt.Errorf("the regex pattern supplied to replace_all_patterns is not a valid pattern: %w", err)
@@ -43,9 +43,16 @@ func ReplaceAllPatterns[K any](target ottl.PMapGetter[K], mode string, regexPatt
 		if err != nil {
 			return nil, err
 		}
+		if val == nil {
+			return nil, nil
+		}
+		attrs, ok := val.(pcommon.Map)
+		if !ok {
+			return nil, nil
+		}
 		updated := pcommon.NewMap()
-		updated.EnsureCapacity(val.Len())
-		val.Range(func(key string, originalValue pcommon.Value) bool {
+		updated.EnsureCapacity(attrs.Len())
+		attrs.Range(func(key string, originalValue pcommon.Value) bool {
 			switch mode {
 			case modeValue:
 				if compiledPattern.MatchString(originalValue.Str()) {
@@ -64,7 +71,11 @@ func ReplaceAllPatterns[K any](target ottl.PMapGetter[K], mode string, regexPatt
 			}
 			return true
 		})
-		updated.CopyTo(val)
+		err = target.Set(ctx, tCtx, updated)
+		if err != nil {
+			return nil, err
+		}
+
 		return nil, nil
 	}, nil
 }

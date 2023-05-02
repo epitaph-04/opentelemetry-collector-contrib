@@ -283,22 +283,23 @@ func (u *brokerTraceReceiveUnmarshallerV1) mapClientSpanAttributes(spanData *mod
 	attrMap.PutInt(droppedEnqueueEventsSuccessAttrKey, int64(spanData.DroppedEnqueueEventsSuccess))
 	attrMap.PutInt(droppedEnqueueEventsFailedAttrKey, int64(spanData.DroppedEnqueueEventsFailed))
 
-	// The IPs are now optional meaning we will not incluude them if they are zero length
 	hostIPLen := len(spanData.HostIp)
 	if hostIPLen == 4 || hostIPLen == 16 {
 		attrMap.PutStr(hostIPAttrKey, net.IP(spanData.HostIp).String())
-		attrMap.PutInt(hostPortAttrKey, int64(spanData.HostPort))
 	} else {
-		u.logger.Debug("Host ip not included", zap.Int("length", hostIPLen))
+		u.logger.Warn("Host ip attribute has an illegal length", zap.Int("length", hostIPLen))
+		u.metrics.recordRecoverableUnmarshallingError()
 	}
+	attrMap.PutInt(hostPortAttrKey, int64(spanData.HostPort))
 
-	peerIPLen := len(spanData.PeerIp)
+	peerIPLen := len(spanData.HostIp)
 	if peerIPLen == 4 || peerIPLen == 16 {
 		attrMap.PutStr(peerIPAttrKey, net.IP(spanData.PeerIp).String())
-		attrMap.PutInt(peerPortAttrKey, int64(spanData.PeerPort))
 	} else {
-		u.logger.Debug("Peer IP not included", zap.Int("length", peerIPLen))
+		u.logger.Warn("Peer ip attribute has an illegal length", zap.Int("length", peerIPLen))
+		u.metrics.recordRecoverableUnmarshallingError()
 	}
+	attrMap.PutInt(peerPortAttrKey, int64(spanData.PeerPort))
 
 	if spanData.Baggage != nil {
 		err := u.unmarshalBaggage(attrMap, *spanData.Baggage)
@@ -336,7 +337,6 @@ func (u *brokerTraceReceiveUnmarshallerV1) mapEnqueueEvent(enqueueEvent *model_v
 		messagingDestinationTypeEventKey = "messaging.solace.destination_type"
 		statusMessageEventKey            = "messaging.solace.enqueue_error_message"
 		rejectsAllEnqueuesKey            = "messaging.solace.rejects_all_enqueues"
-		partitionNumberKey               = "messaging.solace.partition_number"
 		queueKind                        = "queue"
 		topicEndpointKind                = "topic-endpoint"
 	)
@@ -362,9 +362,6 @@ func (u *brokerTraceReceiveUnmarshallerV1) mapEnqueueEvent(enqueueEvent *model_v
 	clientEvent.Attributes().PutBool(rejectsAllEnqueuesKey, enqueueEvent.RejectsAllEnqueues)
 	if enqueueEvent.ErrorDescription != nil {
 		clientEvent.Attributes().PutStr(statusMessageEventKey, enqueueEvent.GetErrorDescription())
-	}
-	if enqueueEvent.PartitionNumber != nil {
-		clientEvent.Attributes().PutInt(partitionNumberKey, int64(*enqueueEvent.PartitionNumber))
 	}
 }
 

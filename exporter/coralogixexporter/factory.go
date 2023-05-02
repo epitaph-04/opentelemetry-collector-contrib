@@ -41,16 +41,9 @@ func createDefaultConfig() component.Config {
 		QueueSettings:   exporterhelper.NewDefaultQueueSettings(),
 		RetrySettings:   exporterhelper.NewDefaultRetrySettings(),
 		TimeoutSettings: exporterhelper.NewDefaultTimeoutSettings(),
-		DomainSettings: configgrpc.GRPCClientSettings{
-			Compression: configcompression.Gzip,
-		},
-		GRPCClientSettings: configgrpc.GRPCClientSettings{
-			Endpoint: "https://",
-		},
 		// Traces GRPC client
 		Traces: configgrpc.GRPCClientSettings{
-			Endpoint:    "https://",
-			Compression: configcompression.Gzip,
+			Endpoint: "https://",
 		},
 		Metrics: configgrpc.GRPCClientSettings{
 			Endpoint: "https://",
@@ -59,8 +52,7 @@ func createDefaultConfig() component.Config {
 			WriteBufferSize: 512 * 1024,
 		},
 		Logs: configgrpc.GRPCClientSettings{
-			Endpoint:    "https://",
-			Compression: configcompression.Gzip,
+			Endpoint: "https://",
 		},
 		PrivateKey: "",
 		AppName:    "",
@@ -80,7 +72,7 @@ func createTraceExporter(ctx context.Context, set exp.CreateSettings, config com
 		set,
 		config,
 		exporter.pushTraces,
-		exporterhelper.WithCapabilities(consumer.Capabilities{MutatesData: true}),
+		exporterhelper.WithCapabilities(consumer.Capabilities{MutatesData: false}),
 		exporterhelper.WithTimeout(cfg.TimeoutSettings),
 		exporterhelper.WithRetry(cfg.RetrySettings),
 		exporterhelper.WithQueue(cfg.QueueSettings),
@@ -104,7 +96,7 @@ func createMetricsExporter(
 		set,
 		cfg,
 		oce.pushMetrics,
-		exporterhelper.WithCapabilities(consumer.Capabilities{MutatesData: true}),
+		exporterhelper.WithCapabilities(consumer.Capabilities{MutatesData: false}),
 		exporterhelper.WithTimeout(oCfg.TimeoutSettings),
 		exporterhelper.WithRetry(oCfg.RetrySettings),
 		exporterhelper.WithQueue(oCfg.QueueSettings),
@@ -128,7 +120,7 @@ func createLogsExporter(
 		set,
 		cfg,
 		oce.pushLogs,
-		exporterhelper.WithCapabilities(consumer.Capabilities{MutatesData: true}),
+		exporterhelper.WithCapabilities(consumer.Capabilities{MutatesData: false}),
 		exporterhelper.WithTimeout(oCfg.TimeoutSettings),
 		exporterhelper.WithRetry(oCfg.RetrySettings),
 		exporterhelper.WithQueue(oCfg.QueueSettings),

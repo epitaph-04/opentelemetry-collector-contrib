@@ -1,4 +1,4 @@
-type: redisreceiver
+name: redisreceiver
 
 resource_attributes:
   redis.version:

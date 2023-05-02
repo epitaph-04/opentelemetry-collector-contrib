@@ -1,10 +1,4 @@
-type: bigipreceiver
-
-status:
-  class: receiver
-  stability: beta
-  pipelines: [metrics]
-  distributions: [contrib]
+name: bigipreceiver
 
 resource_attributes:
   bigip.virtual_server.name:

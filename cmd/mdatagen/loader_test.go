@@ -31,7 +31,7 @@ func Test_loadMetadata(t *testing.T) {
 		{
 			name: "metadata.yaml",
 			want: metadata{
-				Type:           "testreceiver",
+				Name:           "testreceiver",
 				SemConvVersion: "1.9.0",
 				ResourceAttributes: map[attributeName]attribute{
 					"string.resource.attr": {

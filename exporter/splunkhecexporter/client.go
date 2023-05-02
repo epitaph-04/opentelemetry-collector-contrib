@@ -34,11 +34,6 @@ import (
 	"github.com/open-telemetry/opentelemetry-collector-contrib/internal/splunk"
 )
 
-// allow monkey patching for injecting pushLogData function in test
-var getPushLogFn = func(c *client) func(ctx context.Context, ld plog.Logs) error {
-	return c.pushLogData
-}
-
 // client sends the data to the splunk backend.
 type client struct {
 	config            *Config
@@ -47,7 +42,6 @@ type client struct {
 	telemetrySettings component.TelemetrySettings
 	hecWorker         hecWorker
 	buildInfo         component.BuildInfo
-	heartbeater       *heartbeater
 }
 
 func (c *client) pushMetricsData(
@@ -130,8 +124,8 @@ func (c *client) pushLogDataInBatches(ctx context.Context, ld plog.Logs, headers
 		profilingLocalHeaders[k] = v
 	}
 
-	var bufState = makeBlankBufferState(c.config.MaxContentLengthLogs, !c.config.DisableCompression, c.config.MaxEventSize)
-	var profilingBufState = makeBlankBufferState(c.config.MaxContentLengthLogs, !c.config.DisableCompression, c.config.MaxEventSize)
+	var bufState = makeBlankBufferState(c.config.MaxContentLengthLogs, !c.config.DisableCompression)
+	var profilingBufState = makeBlankBufferState(c.config.MaxContentLengthLogs, !c.config.DisableCompression)
 	var permanentErrors []error
 
 	var rls = ld.ResourceLogs()
@@ -174,7 +168,7 @@ func (c *client) pushLogDataInBatches(ctx context.Context, ld plog.Logs, headers
 	}
 
 	// There's some leftover unsent non-profiling data
-	if bufState.containsData {
+	if bufState.buf.Len() > 0 {
 
 		if err := c.postEvents(ctx, bufState, headers); err != nil {
 			return consumererror.NewLogs(err, c.subLogs(ld, bufState.bufFront, profilingBufState.bufFront))
@@ -182,7 +176,7 @@ func (c *client) pushLogDataInBatches(ctx context.Context, ld plog.Logs, headers
 	}
 
 	// There's some leftover unsent profiling data
-	if profilingBufState.containsData {
+	if profilingBufState.buf.Len() > 0 {
 		if err := c.postEvents(ctx, profilingBufState, profilingLocalHeaders); err != nil {
 			// Non-profiling bufFront is set to nil because all non-profiling data was flushed successfully above.
 			return consumererror.NewLogs(err, c.subLogs(ld, nil, profilingBufState.bufFront))
@@ -228,7 +222,7 @@ func (c *client) pushLogRecords(ctx context.Context, lds plog.ResourceLogsSlice,
 			continue
 		}
 
-		if state.containsData {
+		if state.buf.Len() > 0 {
 			if err := c.postEvents(ctx, state, headers); err != nil {
 				return permanentErrors, err
 			}
@@ -247,7 +241,7 @@ func (c *client) pushLogRecords(ctx context.Context, lds plog.ResourceLogsSlice,
 				fmt.Errorf("dropped log event error: event size %d bytes larger than configured max content length %d bytes", len(b), state.bufferMaxLen)))
 			continue
 		}
-		if state.containsData {
+		if state.buf.Len() > 0 {
 			// This means that the current record had overflown the buffer and was not sent
 			state.bufFront = &index{resource: state.resource, library: state.library, record: k}
 		} else {
@@ -302,7 +296,7 @@ func (c *client) pushMetricsRecords(ctx context.Context, mds pmetric.ResourceMet
 			continue
 		}
 
-		if state.containsData {
+		if state.buf.Len() > 0 {
 			if err := c.postEvents(ctx, state, headers); err != nil {
 				return permanentErrors, err
 			}
@@ -322,7 +316,7 @@ func (c *client) pushMetricsRecords(ctx context.Context, mds pmetric.ResourceMet
 			continue
 		}
 
-		if state.containsData {
+		if state.buf.Len() > 0 {
 			// This means that the current record had overflown the buffer and was not sent
 			state.bufFront = &index{resource: state.resource, library: state.library, record: k}
 		} else {
@@ -364,7 +358,7 @@ func (c *client) pushTracesData(ctx context.Context, tds ptrace.ResourceSpansSli
 			continue
 		}
 
-		if state.containsData {
+		if state.buf.Len() > 0 {
 			if err = c.postEvents(ctx, state, headers); err != nil {
 				return permanentErrors, err
 			}
@@ -384,7 +378,7 @@ func (c *client) pushTracesData(ctx context.Context, tds ptrace.ResourceSpansSli
 			continue
 		}
 
-		if state.containsData {
+		if state.buf.Len() > 0 {
 			// This means that the current record had overflown the buffer and was not sent
 			state.bufFront = &index{resource: state.resource, library: state.library, record: k}
 		} else {
@@ -401,7 +395,7 @@ func (c *client) pushTracesData(ctx context.Context, tds ptrace.ResourceSpansSli
 // The batch content length is restricted to MaxContentLengthMetrics.
 // md metrics are parsed to Splunk events.
 func (c *client) pushMetricsDataInBatches(ctx context.Context, md pmetric.Metrics, headers map[string]string) error {
-	var bufState = makeBlankBufferState(c.config.MaxContentLengthMetrics, !c.config.DisableCompression, c.config.MaxEventSize)
+	var bufState = makeBlankBufferState(c.config.MaxContentLengthMetrics, !c.config.DisableCompression)
 	var permanentErrors []error
 
 	var rms = md.ResourceMetrics()
@@ -423,7 +417,7 @@ func (c *client) pushMetricsDataInBatches(ctx context.Context, md pmetric.Metric
 	}
 
 	// There's some leftover unsent metrics
-	if bufState.containsData {
+	if bufState.buf.Len() > 0 {
 		if err := c.postEvents(ctx, bufState, headers); err != nil {
 			return consumererror.NewMetrics(err, subMetrics(md, bufState.bufFront))
 		}
@@ -436,7 +430,7 @@ func (c *client) pushMetricsDataInBatches(ctx context.Context, md pmetric.Metric
 // The batch content length is restricted to MaxContentLengthMetrics.
 // td traces are parsed to Splunk events.
 func (c *client) pushTracesDataInBatches(ctx context.Context, td ptrace.Traces, headers map[string]string) error {
-	bufState := makeBlankBufferState(c.config.MaxContentLengthTraces, !c.config.DisableCompression, c.config.MaxEventSize)
+	bufState := makeBlankBufferState(c.config.MaxContentLengthTraces, !c.config.DisableCompression)
 	var permanentErrors []error
 
 	var rts = td.ResourceSpans()
@@ -458,7 +452,7 @@ func (c *client) pushTracesDataInBatches(ctx context.Context, td ptrace.Traces, 
 	}
 
 	// There's some leftover unsent traces
-	if bufState.containsData {
+	if bufState.buf.Len() > 0 {
 		if err := c.postEvents(ctx, bufState, headers); err != nil {
 			return consumererror.NewTraces(err, subTraces(td, bufState.bufFront))
 		}
@@ -637,9 +631,6 @@ func subTracesByType(src ptrace.Traces, from *index, dst ptrace.Traces) {
 
 func (c *client) stop(context.Context) error {
 	c.wg.Wait()
-	if c.heartbeater != nil {
-		c.heartbeater.shutdown()
-	}
 	return nil
 }
 
@@ -659,7 +650,6 @@ func (c *client) start(ctx context.Context, host component.Host) (err error) {
 	}
 	url, _ := c.config.getURL()
 	c.hecWorker = &defaultHecWorker{url, httpClient, buildHTTPHeaders(c.config, c.buildInfo)}
-	c.heartbeater = newHeartbeater(c.config, c.buildInfo, getPushLogFn(c))
 	return nil
 }
 

@@ -18,7 +18,6 @@ import (
 	"context"
 	"fmt"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"go.opentelemetry.io/otel"
@@ -29,6 +28,7 @@ import (
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.4.0"
+	"go.uber.org/atomic"
 	"go.uber.org/zap"
 	"golang.org/x/time/rate"
 	"google.golang.org/grpc"
@@ -127,9 +127,7 @@ func Run(c *Config, logger *zap.Logger) error {
 	}
 
 	wg := sync.WaitGroup{}
-
-	running := &atomic.Bool{}
-	running.Store(true)
+	running := atomic.NewBool(true)
 
 	for i := 0; i < c.WorkerCount; i++ {
 		wg.Add(1)

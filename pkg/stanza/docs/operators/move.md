@@ -62,7 +62,7 @@ Move a value from the body to resource
 ```yaml
 - type: move
   from: body.uuid
-  to: resource.uuid
+  to: resoruce.uuid
 ```
 
 <table>

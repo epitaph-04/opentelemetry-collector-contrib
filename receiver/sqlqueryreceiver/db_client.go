@@ -16,6 +16,9 @@ package sqlqueryreceiver // import "github.com/open-telemetry/opentelemetry-coll
 
 import (
 	"context"
+	"database/sql"
+	"fmt"
+	"reflect"
 
 	// register db drivers
 	_ "github.com/SAP/go-hdb/driver"
@@ -24,23 +27,20 @@ import (
 	_ "github.com/lib/pq"
 	_ "github.com/sijms/go-ora/v2"
 	_ "github.com/snowflakedb/gosnowflake"
-	"go.uber.org/multierr"
 	"go.uber.org/zap"
 )
 
-type stringMap map[string]string
-
 type dbClient interface {
-	metricRows(ctx context.Context) ([]stringMap, error)
+	metricRows(ctx context.Context) ([]metricRow, error)
 }
 
 type dbSQLClient struct {
-	db     db
+	db     *sql.DB
 	logger *zap.Logger
 	sql    string
 }
 
-func newDbClient(db db, sql string, logger *zap.Logger) dbClient {
+func newDbClient(db *sql.DB, sql string, logger *zap.Logger) dbClient {
 	return dbSQLClient{
 		db:     db,
 		sql:    sql,
@@ -48,28 +48,55 @@ func newDbClient(db db, sql string, logger *zap.Logger) dbClient {
 	}
 }
 
-func (cl dbSQLClient) metricRows(ctx context.Context) ([]stringMap, error) {
+type metricRow map[string]string
+
+func (cl dbSQLClient) metricRows(ctx context.Context) ([]metricRow, error) {
 	sqlRows, err := cl.db.QueryContext(ctx, cl.sql)
 	if err != nil {
 		return nil, err
 	}
-	var out []stringMap
-	colTypes, err := sqlRows.ColumnTypes()
+	var out []metricRow
+	row := reusableRow{
+		attrs: map[string]func() string{},
+	}
+	types, err := sqlRows.ColumnTypes()
 	if err != nil {
 		return nil, err
 	}
-	scanner := newRowScanner(colTypes)
-	var warnings error
+	for _, sqlType := range types {
+		colName := sqlType.Name()
+		var v interface{}
+		row.attrs[colName] = func() string {
+			format := "%v"
+			if reflect.TypeOf(v).Kind() == reflect.Slice {
+				// The Postgres driver returns a []uint8 (a string) for decimal and numeric types,
+				// which we want to render as strings. e.g. "4.1" instead of "[52, 46, 49]".
+				// Other slice types get the same treatment.
+				format = "%s"
+			}
+			return fmt.Sprintf(format, v)
+		}
+		row.scanDest = append(row.scanDest, &v)
+	}
 	for sqlRows.Next() {
-		err = scanner.scan(sqlRows)
+		err = sqlRows.Scan(row.scanDest...)
 		if err != nil {
 			return nil, err
 		}
-		sm, scanErr := scanner.toStringMap()
-		if scanErr != nil {
-			warnings = multierr.Append(warnings, scanErr)
-		}
-		out = append(out, sm)
+		out = append(out, row.toMetricRow())
 	}
-	return out, warnings
+	return out, nil
+}
+
+type reusableRow struct {
+	attrs    map[string]func() string
+	scanDest []interface{}
+}
+
+func (row reusableRow) toMetricRow() metricRow {
+	out := metricRow{}
+	for k, f := range row.attrs {
+		out[k] = f()
+	}
+	return out
 }

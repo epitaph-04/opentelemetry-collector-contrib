@@ -35,7 +35,6 @@ import (
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/consumer/consumertest"
 	"go.opentelemetry.io/collector/exporter/exporterhelper"
-	"go.opentelemetry.io/collector/extension/experimental/storage"
 	"go.opentelemetry.io/collector/pdata/pcommon"
 	"go.opentelemetry.io/collector/pdata/plog"
 	"go.opentelemetry.io/collector/receiver/receivertest"
@@ -601,7 +600,7 @@ func TestAlertsRetrieval(t *testing.T) {
 			require.NoError(t, err)
 			alertsRcvr.client = tc.client()
 
-			err = alertsRcvr.Start(context.Background(), componenttest.NewNopHost(), storage.NewNopClient())
+			err = alertsRcvr.Start(context.Background(), componenttest.NewNopHost())
 			require.NoError(t, err)
 
 			require.Eventually(t, func() bool {
@@ -636,7 +635,7 @@ func TestAlertPollingExclusions(t *testing.T) {
 	require.NoError(t, err)
 	alertsRcvr.client = testClient()
 
-	err = alertsRcvr.Start(context.Background(), componenttest.NewNopHost(), storage.NewNopClient())
+	err = alertsRcvr.Start(context.Background(), componenttest.NewNopHost())
 	require.NoError(t, err)
 
 	require.Never(t, func() bool {

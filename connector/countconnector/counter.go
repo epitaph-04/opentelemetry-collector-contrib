@@ -22,98 +22,60 @@ import (
 	"go.opentelemetry.io/collector/pdata/pmetric"
 	"go.uber.org/multierr"
 
-	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/pdatautil"
+	"github.com/open-telemetry/opentelemetry-collector-contrib/internal/filter/expr"
 )
 
-var noAttributes = [16]byte{}
+type counterFactory[K any] struct {
+	matchExprs  map[string]expr.BoolExpr[K]
+	metricInfos map[string]MetricInfo
+}
 
-func newCounter[K any](metricDefs map[string]metricDef[K]) *counter[K] {
+func (f *counterFactory[K]) newCounter() *counter[K] {
 	return &counter[K]{
-		metricDefs: metricDefs,
-		counts:     make(map[string]map[[16]byte]*attrCounter, len(metricDefs)),
-		timestamp:  time.Now(),
+		matchExprs:  f.matchExprs,
+		metricInfos: f.metricInfos,
+		counts:      make(map[string]uint64, len(f.metricInfos)),
+		timestamp:   time.Now(),
 	}
 }
 
 type counter[K any] struct {
-	metricDefs map[string]metricDef[K]
-	counts     map[string]map[[16]byte]*attrCounter
-	timestamp  time.Time
+	matchExprs  map[string]expr.BoolExpr[K]
+	metricInfos map[string]MetricInfo
+	counts      map[string]uint64
+	timestamp   time.Time
 }
 
-type attrCounter struct {
-	attrs pcommon.Map
-	count uint64
-}
-
-func (c *counter[K]) update(ctx context.Context, attrs pcommon.Map, tCtx K) error {
+func (c *counter[K]) update(ctx context.Context, tCtx K) error {
 	var errors error
-	for name, md := range c.metricDefs {
-		countAttrs := pcommon.NewMap()
-		for _, attr := range md.attrs {
-			if attrVal, ok := attrs.Get(attr.Key); ok {
-				countAttrs.PutStr(attr.Key, attrVal.Str())
-			} else if attr.DefaultValue != "" {
-				countAttrs.PutStr(attr.Key, attr.DefaultValue)
-			}
-		}
-
-		// Missing necessary attributes to be counted
-		if countAttrs.Len() != len(md.attrs) {
-			continue
-		}
-
+	for name := range c.metricInfos {
 		// No conditions, so match all.
-		if md.condition == nil {
-			errors = multierr.Append(errors, c.increment(name, countAttrs))
+		if c.matchExprs[name] == nil {
+			c.counts[name]++
 			continue
 		}
 
-		if match, err := md.condition.Eval(ctx, tCtx); err != nil {
+		if match, err := c.matchExprs[name].Eval(ctx, tCtx); err != nil {
 			errors = multierr.Append(errors, err)
 		} else if match {
-			errors = multierr.Append(errors, c.increment(name, countAttrs))
+			c.counts[name]++
 		}
 	}
 	return errors
 }
 
-func (c *counter[K]) increment(metricName string, attrs pcommon.Map) error {
-	if _, ok := c.counts[metricName]; !ok {
-		c.counts[metricName] = make(map[[16]byte]*attrCounter)
-	}
-
-	key := noAttributes
-	if attrs.Len() > 0 {
-		key = pdatautil.MapHash(attrs)
-	}
-
-	if _, ok := c.counts[metricName][key]; !ok {
-		c.counts[metricName][key] = &attrCounter{attrs: attrs}
-	}
-
-	c.counts[metricName][key].count++
-	return nil
-}
-
 func (c *counter[K]) appendMetricsTo(metricSlice pmetric.MetricSlice) {
-	for name, md := range c.metricDefs {
-		if len(c.counts[name]) == 0 {
-			continue
-		}
+	for name, info := range c.metricInfos {
 		countMetric := metricSlice.AppendEmpty()
 		countMetric.SetName(name)
-		countMetric.SetDescription(md.desc)
+		countMetric.SetDescription(info.Description)
 		sum := countMetric.SetEmptySum()
 		// The delta value is always positive, so a value accumulated downstream is monotonic
 		sum.SetIsMonotonic(true)
 		sum.SetAggregationTemporality(pmetric.AggregationTemporalityDelta)
-		for _, dpCount := range c.counts[name] {
-			dp := sum.DataPoints().AppendEmpty()
-			dpCount.attrs.CopyTo(dp.Attributes())
-			dp.SetIntValue(int64(dpCount.count))
-			// TODO determine appropriate start time
-			dp.SetTimestamp(pcommon.NewTimestampFromTime(c.timestamp))
-		}
+		dp := sum.DataPoints().AppendEmpty()
+		dp.SetIntValue(int64(c.counts[name]))
+		// TODO determine appropriate start time
+		dp.SetTimestamp(pcommon.NewTimestampFromTime(c.timestamp))
 	}
 }

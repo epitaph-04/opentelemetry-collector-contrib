@@ -1,10 +1,10 @@
 # Service Graph Connector
 
 | Status                   |                                                           |
-|------------------------- |-----------------------------------------------------------|
-| Stability                | [alpha]                                                   |
+|------------------------- |---------------------------------------------------------- |
+| Stability                | [in development]                                          |
 | Supported pipeline types | See [Supported Pipeline Types](#supported-pipeline-types) |
-| Distributions            | [contrib]                                                 |
+| Distributions            | []                                                        |
 
 ## Supported Pipeline Types
 
@@ -138,4 +138,4 @@ service:
       exporters: [prometheus/servicegraph]
 ```
 
-[alpha]: https://github.com/open-telemetry/opentelemetry-collector#alpha
+[in development]: https://github.com/open-telemetry/opentelemetry-collector#development

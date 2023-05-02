@@ -19,7 +19,6 @@ import (
 	"go.opentelemetry.io/collector/confmap"
 	"go.opentelemetry.io/collector/receiver"
 
-	"github.com/open-telemetry/opentelemetry-collector-contrib/internal/coreinternal/consumerretry"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/stanza/adapter"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/stanza/operator"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/stanza/operator/input/syslog"
@@ -50,8 +49,7 @@ func (f ReceiverType) Type() component.Type {
 func (f ReceiverType) CreateDefaultConfig() component.Config {
 	return &SysLogConfig{
 		BaseConfig: adapter.BaseConfig{
-			Operators:      []operator.Config{},
-			RetryOnFailure: consumerretry.NewDefaultConfig(),
+			Operators: []operator.Config{},
 		},
 		InputConfig: *syslog.NewConfig(),
 	}

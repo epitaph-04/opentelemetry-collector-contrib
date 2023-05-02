@@ -34,10 +34,6 @@ type Key struct {
 	sid pcommon.SpanID
 }
 
-func (k *Key) SpanIDIsEmpty() bool {
-	return k.sid.IsEmpty()
-}
-
 func NewKey(tid pcommon.TraceID, sid pcommon.SpanID) Key {
 	return Key{tid: tid, sid: sid}
 }
@@ -143,7 +139,7 @@ func (s *Store) tryEvictHead() bool {
 	}
 
 	s.onExpire(headEdge)
-	delete(s.m, headEdge.Key)
+	delete(s.m, headEdge.key)
 	s.l.Remove(head)
 
 	return true

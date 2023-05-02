@@ -32,6 +32,7 @@ import (
 )
 
 func Test_Server_ListenAndServe(t *testing.T) {
+
 	tests := []struct {
 		name          string
 		buildServerFn func(addr string) (Server, error)
@@ -75,7 +76,7 @@ func Test_Server_ListenAndServe(t *testing.T) {
 			p := &protocol.StatsDParser{}
 			require.NoError(t, err)
 			mr := NewMockReporter(1)
-			transferChan := make(chan Metric, 10)
+			var transferChan = make(chan string, 10)
 
 			wgListenAndServe := sync.WaitGroup{}
 			wgListenAndServe.Add(1)

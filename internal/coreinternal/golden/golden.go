@@ -15,39 +15,27 @@
 package golden // import "github.com/open-telemetry/opentelemetry-collector-contrib/internal/coreinternal/golden"
 
 import (
-	"bytes"
 	"encoding/json"
 	"os"
-	"strings"
+	"path/filepath"
 	"testing"
 
 	"go.opentelemetry.io/collector/pdata/plog"
 	"go.opentelemetry.io/collector/pdata/pmetric"
 	"go.opentelemetry.io/collector/pdata/ptrace"
-	"gopkg.in/yaml.v3"
 )
 
-// ReadMetrics reads a pmetric.Metrics from the specified YAML or JSON file.
+// ReadMetrics reads a pmetric.Metrics from the specified file
 func ReadMetrics(filePath string) (pmetric.Metrics, error) {
-	b, err := os.ReadFile(filePath)
+	expectedFileBytes, err := os.ReadFile(filePath)
 	if err != nil {
 		return pmetric.Metrics{}, err
 	}
-	if strings.HasSuffix(filePath, ".yaml") || strings.HasSuffix(filePath, ".yml") {
-		var m map[string]interface{}
-		if err = yaml.Unmarshal(b, &m); err != nil {
-			return pmetric.Metrics{}, err
-		}
-		b, err = json.Marshal(m)
-		if err != nil {
-			return pmetric.Metrics{}, err
-		}
-	}
 	unmarshaller := &pmetric.JSONUnmarshaler{}
-	return unmarshaller.UnmarshalMetrics(b)
+	return unmarshaller.UnmarshalMetrics(expectedFileBytes)
 }
 
-// WriteMetrics writes a pmetric.Metrics to the specified file in YAML format.
+// WriteMetrics writes a pmetric.Metrics to the specified file
 func WriteMetrics(t *testing.T, filePath string, metrics pmetric.Metrics) error {
 	if err := writeMetrics(filePath, metrics); err != nil {
 		return err
@@ -58,7 +46,7 @@ func WriteMetrics(t *testing.T, filePath string, metrics pmetric.Metrics) error 
 	return nil
 }
 
-// writeMetrics writes a pmetric.Metrics to the specified file in YAML format.
+// writeMetrics writes a pmetric.Metrics to the specified file
 func writeMetrics(filePath string, metrics pmetric.Metrics) error {
 	unmarshaler := &pmetric.JSONMarshaler{}
 	fileBytes, err := unmarshaler.MarshalMetrics(metrics)
@@ -69,39 +57,29 @@ func writeMetrics(filePath string, metrics pmetric.Metrics) error {
 	if err = json.Unmarshal(fileBytes, &jsonVal); err != nil {
 		return err
 	}
-	b := &bytes.Buffer{}
-	enc := yaml.NewEncoder(b)
-	enc.SetIndent(2)
-	if err := enc.Encode(jsonVal); err != nil {
+	b, err := json.MarshalIndent(jsonVal, "", "   ")
+	if err != nil {
 		return err
 	}
-	if err := os.WriteFile(filePath, b.Bytes(), 0600); err != nil {
+	b = append(b, []byte("\n")...)
+	if err := os.WriteFile(filePath, b, 0600); err != nil {
 		return err
 	}
 	return nil
 }
 
-// ReadLogs reads a plog.Logs from the specified YAML or JSON file.
+// ReadLogs reads a plog.Logs from the specified file
 func ReadLogs(filePath string) (plog.Logs, error) {
-	b, err := os.ReadFile(filePath)
+	b, err := os.ReadFile(filepath.Clean(filePath))
 	if err != nil {
 		return plog.Logs{}, err
 	}
-	if strings.HasSuffix(filePath, ".yaml") || strings.HasSuffix(filePath, ".yml") {
-		var m map[string]interface{}
-		if err = yaml.Unmarshal(b, &m); err != nil {
-			return plog.Logs{}, err
-		}
-		b, err = json.Marshal(m)
-		if err != nil {
-			return plog.Logs{}, err
-		}
-	}
+
 	unmarshaler := plog.JSONUnmarshaler{}
 	return unmarshaler.UnmarshalLogs(b)
 }
 
-// WriteLogs writes a plog.Logs to the specified file in YAML format.
+// WriteLogs writes a plog.Logs to the specified file
 func WriteLogs(t *testing.T, filePath string, metrics plog.Logs) error {
 	if err := writeLogs(filePath, metrics); err != nil {
 		return err
@@ -112,7 +90,7 @@ func WriteLogs(t *testing.T, filePath string, metrics plog.Logs) error {
 	return nil
 }
 
-// writeLogs writes a plog.Logs to the specified file in YAML format.
+// writeLogs writes a plog.Logs to the specified file
 func writeLogs(filePath string, logs plog.Logs) error {
 	unmarshaler := &plog.JSONMarshaler{}
 	fileBytes, err := unmarshaler.MarshalLogs(logs)
@@ -123,36 +101,25 @@ func writeLogs(filePath string, logs plog.Logs) error {
 	if err = json.Unmarshal(fileBytes, &jsonVal); err != nil {
 		return err
 	}
-	b := &bytes.Buffer{}
-	enc := yaml.NewEncoder(b)
-	enc.SetIndent(2)
-	if err := enc.Encode(jsonVal); err != nil {
+	b, err := json.MarshalIndent(jsonVal, "", "    ")
+	if err != nil {
 		return err
 	}
-	return os.WriteFile(filePath, b.Bytes(), 0600)
+	b = append(b, []byte("\n")...)
+	return os.WriteFile(filePath, b, 0600)
 }
 
-// ReadTraces reads a ptrace.Traces from the specified YAML or JSON file.
+// ReadTraces reads a ptrace.Traces from the specified file
 func ReadTraces(filePath string) (ptrace.Traces, error) {
-	b, err := os.ReadFile(filePath)
+	b, err := os.ReadFile(filepath.Clean(filePath))
 	if err != nil {
 		return ptrace.Traces{}, err
 	}
-	if strings.HasSuffix(filePath, ".yaml") || strings.HasSuffix(filePath, ".yml") {
-		var m map[string]interface{}
-		if err = yaml.Unmarshal(b, &m); err != nil {
-			return ptrace.Traces{}, err
-		}
-		b, err = json.Marshal(m)
-		if err != nil {
-			return ptrace.Traces{}, err
-		}
-	}
+
 	unmarshaler := ptrace.JSONUnmarshaler{}
 	return unmarshaler.UnmarshalTraces(b)
 }
 
-// WriteTraces writes a ptrace.Traces to the specified file in YAML format.
 func WriteTraces(t *testing.T, filePath string, traces ptrace.Traces) error {
 	if err := writeTraces(filePath, traces); err != nil {
 		return err
@@ -174,11 +141,10 @@ func writeTraces(filePath string, traces ptrace.Traces) error {
 	if err = json.Unmarshal(fileBytes, &jsonVal); err != nil {
 		return err
 	}
-	b := &bytes.Buffer{}
-	enc := yaml.NewEncoder(b)
-	enc.SetIndent(2)
-	if err := enc.Encode(jsonVal); err != nil {
+	b, err := json.MarshalIndent(jsonVal, "", "    ")
+	if err != nil {
 		return err
 	}
-	return os.WriteFile(filePath, b.Bytes(), 0600)
+	b = append(b, []byte("\n")...)
+	return os.WriteFile(filePath, b, 0600)
 }

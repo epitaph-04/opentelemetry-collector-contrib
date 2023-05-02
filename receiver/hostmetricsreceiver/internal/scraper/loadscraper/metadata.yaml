@@ -1,4 +1,4 @@
-type: hostmetricsreceiver/load
+name: hostmetricsreceiver/load
 
 sem_conv_version: 1.9.0
 

@@ -28,58 +28,37 @@ func TestUnmarshal(t *testing.T) {
 		TestsFile:     filepath.Join(".", "testdata", "config.yaml"),
 		Tests: []operatortest.ConfigUnmarshalTest{
 			{
-				Name: "flatten_body_one_level",
+				Name: "flatten_one_level",
 				Expect: func() *Config {
 					cfg := NewConfig()
-					cfg.Field = entry.NewBodyField("nested")
+					cfg.Field = entry.BodyField{
+						Keys: []string{"nested"},
+					}
 					return cfg
 				}(),
 				ExpectErr: false,
 			},
 			{
-				Name: "flatten_body_second_level",
+				Name: "flatten_second_level",
 				Expect: func() *Config {
 					cfg := NewConfig()
-					cfg.Field = entry.NewBodyField("nested", "secondlevel")
+					cfg.Field = entry.BodyField{
+						Keys: []string{"nested", "secondlevel"},
+					}
 					return cfg
 				}(),
 				ExpectErr: false,
 			},
 			{
-				Name: "flatten_resource_one_level",
+				Name: "flatten_attributes",
 				Expect: func() *Config {
 					cfg := NewConfig()
-					cfg.Field = entry.NewResourceField("nested")
+					cfg.Field = entry.BodyField{
+						Keys: []string{"attributes", "errField"},
+					}
 					return cfg
 				}(),
-				ExpectErr: false,
-			},
-			{
-				Name: "flatten_resource_second_level",
-				Expect: func() *Config {
-					cfg := NewConfig()
-					cfg.Field = entry.NewResourceField("nested", "secondlevel")
-					return cfg
-				}(),
-				ExpectErr: false,
-			},
-			{
-				Name: "flatten_attributes_one_level",
-				Expect: func() *Config {
-					cfg := NewConfig()
-					cfg.Field = entry.NewAttributeField("nested")
-					return cfg
-				}(),
-				ExpectErr: false,
-			},
-			{
-				Name: "flatten_attributes_second_level",
-				Expect: func() *Config {
-					cfg := NewConfig()
-					cfg.Field = entry.NewAttributeField("nested", "secondlevel")
-					return cfg
-				}(),
-				ExpectErr: false,
+				ExpectErr: true,
 			},
 		},
 	}.Run(t)

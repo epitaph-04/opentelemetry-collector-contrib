@@ -17,14 +17,12 @@ package sqlqueryreceiver // import "github.com/open-telemetry/opentelemetry-coll
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"fmt"
 	"time"
 
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/pdata/pcommon"
 	"go.opentelemetry.io/collector/pdata/pmetric"
-	"go.opentelemetry.io/collector/receiver/scrapererror"
 	"go.opentelemetry.io/collector/receiver/scraperhelper"
 	"go.uber.org/multierr"
 	"go.uber.org/zap"
@@ -44,7 +42,7 @@ type scraper struct {
 
 var _ scraperhelper.Scraper = (*scraper)(nil)
 
-func (s *scraper) ID() component.ID {
+func (s scraper) ID() component.ID {
 	return s.id
 }
 
@@ -54,23 +52,19 @@ func (s *scraper) Start(context.Context, component.Host) error {
 	if err != nil {
 		return fmt.Errorf("failed to open db connection: %w", err)
 	}
-	s.client = s.clientProviderFunc(dbWrapper{s.db}, s.query.SQL, s.logger)
+	s.client = s.clientProviderFunc(s.db, s.query.SQL, s.logger)
 	s.startTime = pcommon.NewTimestampFromTime(time.Now())
 
 	return nil
 }
 
-func (s *scraper) Scrape(ctx context.Context) (pmetric.Metrics, error) {
+func (s scraper) Scrape(ctx context.Context) (pmetric.Metrics, error) {
 	out := pmetric.NewMetrics()
 	rows, err := s.client.metricRows(ctx)
-	if err != nil {
-		if errors.Is(err, errNullValueWarning) {
-			s.logger.Warn("problems encountered getting metric rows", zap.Error(err))
-		} else {
-			return out, fmt.Errorf("scraper: %w", err)
-		}
-	}
 	ts := pcommon.NewTimestampFromTime(time.Now())
+	if err != nil {
+		return out, fmt.Errorf("scraper: %w", err)
+	}
 	rms := out.ResourceMetrics()
 	rm := rms.AppendEmpty()
 	sms := rm.ScopeMetrics()
@@ -86,11 +80,11 @@ func (s *scraper) Scrape(ctx context.Context) (pmetric.Metrics, error) {
 		}
 	}
 	if errs != nil {
-		return out, scrapererror.NewPartialScrapeError(errs, len(multierr.Errors(errs)))
+		errs = fmt.Errorf("scraper.Scrape row conversion errors: %w", errs)
 	}
-	return out, nil
+	return out, errs
 }
 
-func (s *scraper) Shutdown(ctx context.Context) error {
+func (s scraper) Shutdown(ctx context.Context) error {
 	return s.db.Close()
 }

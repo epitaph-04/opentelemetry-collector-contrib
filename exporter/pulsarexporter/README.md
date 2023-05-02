@@ -9,6 +9,8 @@
 Pulsar exporter exports logs, metrics, and traces to Pulsar. This exporter uses a synchronous producer
 that blocks and able to batch messages.
 
+Supported pipeline types: logs, metrics, traces
+
 ## Get Started
 
 The following settings can be optionally configured:

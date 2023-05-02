@@ -24,13 +24,12 @@ import (
 	"go.opentelemetry.io/collector/pdata/ptrace"
 
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl"
-	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl/contexts/internal"
-	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl/internal/ottlcommon"
+	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl/contexts/internal/ottlcommon"
 )
 
-var _ internal.ResourceContext = TransformContext{}
-var _ internal.InstrumentationScopeContext = TransformContext{}
-var _ internal.SpanContext = TransformContext{}
+var _ ottlcommon.ResourceContext = TransformContext{}
+var _ ottlcommon.InstrumentationScopeContext = TransformContext{}
+var _ ottlcommon.SpanContext = TransformContext{}
 
 type TransformContext struct {
 	spanEvent            ptrace.SpanEvent
@@ -106,7 +105,7 @@ func NewStatements(statements []*ottl.Statement[TransformContext], telemetrySett
 
 func parseEnum(val *ottl.EnumSymbol) (*ottl.Enum, error) {
 	if val != nil {
-		if enum, ok := internal.SpanSymbolTable[*val]; ok {
+		if enum, ok := ottlcommon.SpanSymbolTable[*val]; ok {
 			return &enum, nil
 		}
 		return nil, fmt.Errorf("enum symbol, %s, not found", *val)
@@ -130,11 +129,11 @@ func newPathGetSetter(path []ottl.Field) (ottl.GetSetter[TransformContext], erro
 		}
 		return accessCacheKey(mapKey), nil
 	case "resource":
-		return internal.ResourcePathGetSetter[TransformContext](path[1:])
+		return ottlcommon.ResourcePathGetSetter[TransformContext](path[1:])
 	case "instrumentation_scope":
-		return internal.ScopePathGetSetter[TransformContext](path[1:])
+		return ottlcommon.ScopePathGetSetter[TransformContext](path[1:])
 	case "span":
-		return internal.SpanPathGetSetter[TransformContext](path[1:])
+		return ottlcommon.SpanPathGetSetter[TransformContext](path[1:])
 	case "time_unix_nano":
 		return accessSpanEventTimeUnixNano(), nil
 	case "name":

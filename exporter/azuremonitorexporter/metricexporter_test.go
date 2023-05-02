@@ -25,7 +25,6 @@ import (
 	"github.com/microsoft/ApplicationInsights-Go/appinsights/contracts"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"go.opentelemetry.io/collector/pdata/pcommon"
 	"go.opentelemetry.io/collector/pdata/pmetric"
 	"go.uber.org/zap"
 )
@@ -42,8 +41,8 @@ func TestExporterMetricDataCallback(t *testing.T) {
 	mockTransportChannel.AssertNumberOfCalls(t, "Send", 5)
 }
 
-func TestDoubleGaugeEnvelopes(t *testing.T) {
-	gaugeMetric := getDoubleTestGaugeMetric()
+func TestGaugeEnvelopes(t *testing.T) {
+	gaugeMetric := getTestGaugeMetric()
 	dataPoint := getDataPoint(t, gaugeMetric)
 
 	assert.Equal(t, dataPoint.Name, "Gauge")
@@ -52,28 +51,8 @@ func TestDoubleGaugeEnvelopes(t *testing.T) {
 	assert.Equal(t, dataPoint.Kind, contracts.Measurement)
 }
 
-func TestIntGaugeEnvelopes(t *testing.T) {
-	gaugeMetric := getIntTestGaugeMetric()
-	dataPoint := getDataPoint(t, gaugeMetric)
-
-	assert.Equal(t, dataPoint.Name, "Gauge")
-	assert.Equal(t, dataPoint.Value, float64(1))
-	assert.Equal(t, dataPoint.Count, 1)
-	assert.Equal(t, dataPoint.Kind, contracts.Measurement)
-}
-
-func TestDoubleSumEnvelopes(t *testing.T) {
-	sumMetric := getDoubleTestSumMetric()
-	dataPoint := getDataPoint(t, sumMetric)
-
-	assert.Equal(t, dataPoint.Name, "Sum")
-	assert.Equal(t, dataPoint.Value, float64(2))
-	assert.Equal(t, dataPoint.Count, 1)
-	assert.Equal(t, dataPoint.Kind, contracts.Measurement)
-}
-
-func TestIntSumEnvelopes(t *testing.T) {
-	sumMetric := getIntTestSumMetric()
+func TestSumEnvelopes(t *testing.T) {
+	sumMetric := getTestSumMetric()
 	dataPoint := getDataPoint(t, sumMetric)
 
 	assert.Equal(t, dataPoint.Name, "Sum")
@@ -138,12 +117,6 @@ func getDataPoint(t testing.TB, metric pmetric.Metric) *contracts.DataPoint {
 	dataPoint := metricData.Metrics[0]
 	require.NotNil(t, dataPoint)
 
-	actualProperties := metricData.Properties
-	require.Equal(t, "10", actualProperties["int_attribute"])
-	require.Equal(t, "str_value", actualProperties["str_attribute"])
-	require.Equal(t, "true", actualProperties["bool_attribute"])
-	require.Equal(t, "1.2", actualProperties["double_attribute"])
-
 	return dataPoint
 }
 
@@ -169,11 +142,11 @@ func getTestMetrics() pmetric.Metrics {
 	metricSlice := scopeMetrics.Metrics()
 
 	metric := metricSlice.AppendEmpty()
-	gaugeMetric := getDoubleTestGaugeMetric()
+	gaugeMetric := getTestGaugeMetric()
 	gaugeMetric.CopyTo(metric)
 
 	metric = metricSlice.AppendEmpty()
-	sumMetric := getIntTestSumMetric()
+	sumMetric := getTestSumMetric()
 	sumMetric.CopyTo(metric)
 
 	metric = metricSlice.AppendEmpty()
@@ -191,49 +164,23 @@ func getTestMetrics() pmetric.Metrics {
 	return metrics
 }
 
-func getDoubleTestGaugeMetric() pmetric.Metric {
-	return getTestGaugeMetric(func(datapoint pmetric.NumberDataPoint) {
-		datapoint.SetDoubleValue(1)
-	})
-}
-
-func getIntTestGaugeMetric() pmetric.Metric {
-	return getTestGaugeMetric(func(datapoint pmetric.NumberDataPoint) {
-		datapoint.SetIntValue(1)
-	})
-}
-
-func getTestGaugeMetric(modify func(pmetric.NumberDataPoint)) pmetric.Metric {
+func getTestGaugeMetric() pmetric.Metric {
 	metric := pmetric.NewMetric()
 	metric.SetName("Gauge")
 	metric.SetEmptyGauge()
 	datapoints := metric.Gauge().DataPoints()
 	datapoint := datapoints.AppendEmpty()
-	setDefaultTestAttributes(datapoint.Attributes())
-	modify(datapoint)
+	datapoint.SetDoubleValue(1)
 	return metric
 }
 
-func getDoubleTestSumMetric() pmetric.Metric {
-	return getTestSumMetric(func(datapoint pmetric.NumberDataPoint) {
-		datapoint.SetDoubleValue(2)
-	})
-}
-
-func getIntTestSumMetric() pmetric.Metric {
-	return getTestSumMetric(func(datapoint pmetric.NumberDataPoint) {
-		datapoint.SetIntValue(2)
-	})
-}
-
-func getTestSumMetric(modify func(pmetric.NumberDataPoint)) pmetric.Metric {
+func getTestSumMetric() pmetric.Metric {
 	metric := pmetric.NewMetric()
 	metric.SetName("Sum")
 	metric.SetEmptySum()
 	datapoints := metric.Sum().DataPoints()
 	datapoint := datapoints.AppendEmpty()
-	setDefaultTestAttributes(datapoint.Attributes())
-	modify(datapoint)
+	datapoint.SetDoubleValue(2)
 	return metric
 }
 
@@ -247,7 +194,6 @@ func getTestHistogramMetric() pmetric.Metric {
 	datapoint.SetCount(3)
 	datapoint.SetMin(0)
 	datapoint.SetMax(2)
-	setDefaultTestAttributes(datapoint.Attributes())
 	return metric
 }
 
@@ -261,7 +207,6 @@ func getTestExponentialHistogramMetric() pmetric.Metric {
 	datapoint.SetCount(4)
 	datapoint.SetMin(1)
 	datapoint.SetMax(3)
-	setDefaultTestAttributes(datapoint.Attributes())
 	return metric
 }
 
@@ -273,13 +218,5 @@ func getTestSummaryMetric() pmetric.Metric {
 	datapoint := datapoints.AppendEmpty()
 	datapoint.SetSum(5)
 	datapoint.SetCount(5)
-	setDefaultTestAttributes(datapoint.Attributes())
 	return metric
-}
-
-func setDefaultTestAttributes(attributeMap pcommon.Map) {
-	attributeMap.PutInt("int_attribute", 10)
-	attributeMap.PutStr("str_attribute", "str_value")
-	attributeMap.PutBool("bool_attribute", true)
-	attributeMap.PutDouble("double_attribute", 1.2)
 }

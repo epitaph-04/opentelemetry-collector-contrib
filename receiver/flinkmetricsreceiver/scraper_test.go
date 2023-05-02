@@ -165,7 +165,7 @@ func TestScraperScrape(t *testing.T) {
 			setupMockClient: func(t *testing.T) client {
 				return nil
 			},
-			expectedMetricFile: filepath.Join("testdata", "expected_metrics", "no_metrics.yaml"),
+			expectedMetricFile: filepath.Join("testdata", "expected_metrics", "no_metrics.json"),
 			expectedErr:        errClientNotInit,
 		},
 		{
@@ -178,7 +178,7 @@ func TestScraperScrape(t *testing.T) {
 				mockClient.On("GetSubtasksMetrics", mock.Anything).Return(nil, nil)
 				return &mockClient
 			},
-			expectedMetricFile: filepath.Join("testdata", "expected_metrics", "no_metrics.yaml"),
+			expectedMetricFile: filepath.Join("testdata", "expected_metrics", "no_metrics.json"),
 			expectedErr:        errors.New(jobmanagerFailedFetch + " some api error"),
 		},
 		{
@@ -191,7 +191,7 @@ func TestScraperScrape(t *testing.T) {
 				mockClient.On("GetSubtasksMetrics", mock.Anything).Return(nil, nil)
 				return &mockClient
 			},
-			expectedMetricFile: filepath.Join("testdata", "expected_metrics", "partial_metrics_no_taskmanagers.yaml"),
+			expectedMetricFile: filepath.Join("testdata", "expected_metrics", "partial_metrics_no_taskmanagers.json"),
 			expectedErr:        errors.New(taskmanagerFailedFetch + " some api error"),
 		},
 		{
@@ -204,7 +204,7 @@ func TestScraperScrape(t *testing.T) {
 				mockClient.On("GetSubtasksMetrics", mock.Anything).Return(nil, nil)
 				return &mockClient
 			},
-			expectedMetricFile: filepath.Join("testdata", "expected_metrics", "partial_metrics_no_jobs.yaml"),
+			expectedMetricFile: filepath.Join("testdata", "expected_metrics", "partial_metrics_no_jobs.json"),
 			expectedErr:        errors.New(jobsFailedFetch + " some api error"),
 		},
 		{
@@ -217,7 +217,7 @@ func TestScraperScrape(t *testing.T) {
 				mockClient.On("GetSubtasksMetrics", mock.Anything).Return(nil, errors.New("some api error"))
 				return &mockClient
 			},
-			expectedMetricFile: filepath.Join("testdata", "expected_metrics", "partial_metrics_no_subtasks.yaml"),
+			expectedMetricFile: filepath.Join("testdata", "expected_metrics", "partial_metrics_no_subtasks.json"),
 			expectedErr:        errors.New(subtasksFailedFetch + " some api error"),
 		},
 		{
@@ -233,7 +233,7 @@ func TestScraperScrape(t *testing.T) {
 				mockClient.On("GetSubtasksMetrics", mock.Anything).Return(subtaskEmptyInstances, nil)
 				return &mockClient
 			},
-			expectedMetricFile: filepath.Join("testdata", "expected_metrics", "metrics_no_jobs_golden.yaml"),
+			expectedMetricFile: filepath.Join("testdata", "expected_metrics", "metrics_no_jobs_golden.json"),
 			expectedErr:        nil,
 		},
 		{
@@ -249,7 +249,7 @@ func TestScraperScrape(t *testing.T) {
 
 				return &mockClient
 			},
-			expectedMetricFile: filepath.Join("testdata", "expected_metrics", "metrics_golden.yaml"),
+			expectedMetricFile: filepath.Join("testdata", "expected_metrics", "metrics_golden.json"),
 			expectedErr:        nil,
 		},
 	}

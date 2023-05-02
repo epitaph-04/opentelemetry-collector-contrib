@@ -54,8 +54,8 @@ func TestCreateDefaultConfig(t *testing.T) {
 			},
 			DeltaTTL: 3600,
 			HistConfig: HistogramConfig{
-				Mode:             "distributions",
-				SendAggregations: false,
+				Mode:         "distributions",
+				SendCountSum: false,
 			},
 			SumConfig: SumConfig{
 				CumulativeMonotonicMode: CumulativeMonotonicSumModeToDelta,
@@ -115,8 +115,8 @@ func TestLoadConfig(t *testing.T) {
 					},
 					DeltaTTL: 3600,
 					HistConfig: HistogramConfig{
-						Mode:             "distributions",
-						SendAggregations: false,
+						Mode:         "distributions",
+						SendCountSum: false,
 					},
 					SumConfig: SumConfig{
 						CumulativeMonotonicMode: CumulativeMonotonicSumModeToDelta,
@@ -164,8 +164,8 @@ func TestLoadConfig(t *testing.T) {
 					},
 					DeltaTTL: 3600,
 					HistConfig: HistogramConfig{
-						Mode:             "distributions",
-						SendAggregations: false,
+						Mode:         "distributions",
+						SendCountSum: false,
 					},
 					SumConfig: SumConfig{
 						CumulativeMonotonicMode: CumulativeMonotonicSumModeToDelta,
@@ -217,8 +217,8 @@ func TestLoadConfig(t *testing.T) {
 					},
 					DeltaTTL: 3600,
 					HistConfig: HistogramConfig{
-						Mode:             "distributions",
-						SendAggregations: false,
+						Mode:         "distributions",
+						SendCountSum: false,
 					},
 					SumConfig: SumConfig{
 						CumulativeMonotonicMode: CumulativeMonotonicSumModeToDelta,

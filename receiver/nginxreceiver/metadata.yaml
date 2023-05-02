@@ -1,4 +1,4 @@
-type: nginxreceiver
+name: nginxreceiver
 
 attributes:
   state:

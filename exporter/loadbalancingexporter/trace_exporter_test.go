@@ -22,7 +22,6 @@ import (
 	"net"
 	"path/filepath"
 	"sync"
-	"sync/atomic"
 	"testing"
 	"time"
 
@@ -39,6 +38,7 @@ import (
 	"go.opentelemetry.io/collector/pdata/pcommon"
 	"go.opentelemetry.io/collector/pdata/ptrace"
 	conventions "go.opentelemetry.io/collector/semconv/v1.9.0"
+	"go.uber.org/atomic"
 	"go.uber.org/zap"
 )
 
@@ -420,7 +420,7 @@ func TestRollingUpdatesWhenConsumeTraces(t *testing.T) {
 	})
 
 	resolverCh := make(chan struct{}, 1)
-	counter := &atomic.Int64{}
+	counter := atomic.NewInt64(0)
 	resolve := [][]net.IPAddr{
 		{
 			{IP: net.IPv4(127, 0, 0, 1)},
@@ -434,7 +434,7 @@ func TestRollingUpdatesWhenConsumeTraces(t *testing.T) {
 	res.resolver = &mockDNSResolver{
 		onLookupIPAddr: func(context.Context, string) ([]net.IPAddr, error) {
 			defer func() {
-				counter.Add(1)
+				counter.Inc()
 			}()
 
 			if counter.Load() <= 2 {
@@ -470,18 +470,18 @@ func TestRollingUpdatesWhenConsumeTraces(t *testing.T) {
 	lb.res = res
 	p.loadBalancer = lb
 
-	counter1 := &atomic.Int64{}
-	counter2 := &atomic.Int64{}
+	counter1 := atomic.NewInt64(0)
+	counter2 := atomic.NewInt64(0)
 	defaultExporters := map[string]component.Component{
 		"127.0.0.1:4317": newMockTracesExporter(func(ctx context.Context, td ptrace.Traces) error {
-			counter1.Add(1)
+			counter1.Inc()
 			// simulate an unreachable backend
 			time.Sleep(10 * time.Second)
 			return nil
 		},
 		),
 		"127.0.0.2:4317": newMockTracesExporter(func(ctx context.Context, td ptrace.Traces) error {
-			counter2.Add(1)
+			counter2.Inc()
 			return nil
 		},
 		),

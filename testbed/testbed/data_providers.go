@@ -16,8 +16,9 @@ package testbed // import "github.com/open-telemetry/opentelemetry-collector-con
 
 import (
 	"log"
+	"os"
+	"path/filepath"
 	"strconv"
-	"sync/atomic"
 	"time"
 
 	"go.opentelemetry.io/collector/component"
@@ -25,8 +26,8 @@ import (
 	"go.opentelemetry.io/collector/pdata/plog"
 	"go.opentelemetry.io/collector/pdata/pmetric"
 	"go.opentelemetry.io/collector/pdata/ptrace"
+	"go.uber.org/atomic"
 
-	"github.com/open-telemetry/opentelemetry-collector-contrib/internal/coreinternal/golden"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/internal/coreinternal/goldendataset"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/internal/coreinternal/idutils"
 )
@@ -69,13 +70,13 @@ func (dp *perfTestDataProvider) GenerateTraces() (ptrace.Traces, bool) {
 	spans := traceData.ResourceSpans().AppendEmpty().ScopeSpans().AppendEmpty().Spans()
 	spans.EnsureCapacity(dp.options.ItemsPerBatch)
 
-	traceID := dp.traceIDSequence.Add(1)
+	traceID := dp.traceIDSequence.Inc()
 	for i := 0; i < dp.options.ItemsPerBatch; i++ {
 
 		startTime := time.Now()
 		endTime := startTime.Add(time.Millisecond)
 
-		spanID := dp.dataItemsGenerated.Add(1)
+		spanID := dp.dataItemsGenerated.Inc()
 
 		span := spans.AppendEmpty()
 
@@ -118,13 +119,13 @@ func (dp *perfTestDataProvider) GenerateMetrics() (pmetric.Metrics, bool) {
 		metric.SetDescription("Load Generator Counter #" + strconv.Itoa(i))
 		metric.SetUnit("1")
 		dps := metric.SetEmptyGauge().DataPoints()
-		batchIndex := dp.traceIDSequence.Add(1)
+		batchIndex := dp.traceIDSequence.Inc()
 		// Generate data points for the metric.
 		dps.EnsureCapacity(dataPointsPerMetric)
 		for j := 0; j < dataPointsPerMetric; j++ {
 			dataPoint := dps.AppendEmpty()
 			dataPoint.SetStartTimestamp(pcommon.NewTimestampFromTime(time.Now()))
-			value := dp.dataItemsGenerated.Add(1)
+			value := dp.dataItemsGenerated.Inc()
 			dataPoint.SetIntValue(int64(value))
 			dataPoint.Attributes().PutStr("item_index", "item_"+strconv.Itoa(j))
 			dataPoint.Attributes().PutStr("batch_index", "batch_"+strconv.Itoa(int(batchIndex)))
@@ -148,10 +149,10 @@ func (dp *perfTestDataProvider) GenerateLogs() (plog.Logs, bool) {
 
 	now := pcommon.NewTimestampFromTime(time.Now())
 
-	batchIndex := dp.traceIDSequence.Add(1)
+	batchIndex := dp.traceIDSequence.Inc()
 
 	for i := 0; i < dp.options.ItemsPerBatch; i++ {
-		itemIndex := dp.dataItemsGenerated.Add(1)
+		itemIndex := dp.dataItemsGenerated.Inc()
 		record := logRecords.AppendEmpty()
 		record.SetSeverityNumber(plog.SeverityNumberInfo3)
 		record.SetSeverityText("INFO3")
@@ -254,22 +255,29 @@ type FileDataProvider struct {
 // NewFileDataProvider creates an instance of FileDataProvider which generates test data
 // loaded from a file.
 func NewFileDataProvider(filePath string, dataType component.DataType) (*FileDataProvider, error) {
+	buf, err := os.ReadFile(filepath.Clean(filePath))
+	if err != nil {
+		return nil, err
+	}
+
 	dp := &FileDataProvider{}
-	var err error
 	// Load the message from the file and count the data points.
 	switch dataType {
 	case component.DataTypeTraces:
-		if dp.traces, err = golden.ReadTraces(filePath); err != nil {
+		unmarshaler := &ptrace.JSONUnmarshaler{}
+		if dp.traces, err = unmarshaler.UnmarshalTraces(buf); err != nil {
 			return nil, err
 		}
 		dp.ItemsPerBatch = dp.traces.SpanCount()
 	case component.DataTypeMetrics:
-		if dp.metrics, err = golden.ReadMetrics(filePath); err != nil {
+		unmarshaler := &pmetric.JSONUnmarshaler{}
+		if dp.metrics, err = unmarshaler.UnmarshalMetrics(buf); err != nil {
 			return nil, err
 		}
 		dp.ItemsPerBatch = dp.metrics.DataPointCount()
 	case component.DataTypeLogs:
-		if dp.logs, err = golden.ReadLogs(filePath); err != nil {
+		unmarshaler := &plog.JSONUnmarshaler{}
+		if dp.logs, err = unmarshaler.UnmarshalLogs(buf); err != nil {
 			return nil, err
 		}
 		dp.ItemsPerBatch = dp.logs.LogRecordCount()

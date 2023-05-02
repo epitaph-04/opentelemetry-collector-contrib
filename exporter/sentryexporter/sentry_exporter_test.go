@@ -162,9 +162,8 @@ func SpanIDFromHex(s string) sentry.SpanID {
 
 func generateEmptyTransactionMap(spans ...*sentry.Span) map[sentry.SpanID]*sentry.Event {
 	transactionMap := make(map[sentry.SpanID]*sentry.Event)
-	environment := "development"
 	for _, span := range spans {
-		transactionMap[span.SpanID] = transactionFromSpan(span, environment)
+		transactionMap[span.SpanID] = transactionFromSpan(span)
 	}
 	return transactionMap
 }
@@ -655,9 +654,8 @@ func TestClassifyOrphanSpans(t *testing.T) {
 func TestGenerateTransactions(t *testing.T) {
 	transactionMap := generateEmptyTransactionMap(rootSpan1, rootSpan2)
 	orphanSpans := generateOrphanSpansFromSpans(orphanSpan1, childSpan1)
-	environment := "staging"
 
-	transactions := generateTransactions(transactionMap, orphanSpans, environment)
+	transactions := generateTransactions(transactionMap, orphanSpans)
 
 	assert.Len(t, transactions, 4)
 }
@@ -772,10 +770,9 @@ func TestTransactionContextFromSpanMarshalEvent(t *testing.T) {
 		},
 	}
 
-	environment := "production"
 	for _, test := range testCases {
 		t.Run(test.testName, func(t *testing.T) {
-			event := transactionFromSpan(test.span, environment)
+			event := transactionFromSpan(test.span)
 			// mimic what sentry is doing internally
 			// see: https://github.com/getsentry/sentry-go/blob/v0.13.0/transport.go#L66-L70
 			d, err := json.Marshal(event.Contexts)

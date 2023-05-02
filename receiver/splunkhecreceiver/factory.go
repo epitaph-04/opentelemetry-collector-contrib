@@ -25,7 +25,6 @@ import (
 
 	"github.com/open-telemetry/opentelemetry-collector-contrib/internal/sharedcomponent"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/internal/splunk"
-	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/splunkhecreceiver/internal/metadata"
 )
 
 // This file implements factory for Splunk HEC receiver.
@@ -33,6 +32,8 @@ import (
 const (
 	// The value of "type" key in configuration.
 	typeStr = "splunk_hec"
+	// The stability level of the receiver.
+	stability = component.StabilityLevelBeta
 
 	// Default endpoints to bind to.
 	defaultEndpoint = ":8088"
@@ -43,8 +44,8 @@ func NewFactory() receiver.Factory {
 	return receiver.NewFactory(
 		typeStr,
 		createDefaultConfig,
-		receiver.WithMetrics(createMetricsReceiver, metadata.Stability),
-		receiver.WithLogs(createLogsReceiver, metadata.Stability))
+		receiver.WithMetrics(createMetricsReceiver, stability),
+		receiver.WithLogs(createLogsReceiver, stability))
 }
 
 // CreateDefaultConfig creates the default configuration for Splunk HEC receiver.

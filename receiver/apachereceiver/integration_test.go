@@ -73,7 +73,7 @@ func TestApacheIntegration(t *testing.T) {
 
 	actualMetrics := consumer.AllMetrics()[0]
 
-	expectedFile := filepath.Join("testdata", "integration", "expected.yaml")
+	expectedFile := filepath.Join("testdata", "integration", "expected.json")
 	expectedMetrics, err := golden.ReadMetrics(expectedFile)
 	require.NoError(t, err)
 

@@ -24,7 +24,6 @@ import (
 	"runtime"
 	"strconv"
 	"sync"
-	"sync/atomic"
 	"testing"
 	"time"
 
@@ -35,6 +34,7 @@ import (
 	"go.opentelemetry.io/collector/pdata/pcommon"
 	"go.opentelemetry.io/collector/pdata/pmetric"
 	conventions "go.opentelemetry.io/collector/semconv/v1.9.0"
+	"go.uber.org/atomic"
 
 	"github.com/open-telemetry/opentelemetry-collector-contrib/internal/common/testutil"
 )
@@ -187,7 +187,7 @@ func Test_connPool_Concurrency(t *testing.T) {
 	concurrentWriters := 3
 	writesPerRoutine := 3
 
-	doneFlag := &atomic.Bool{}
+	doneFlag := atomic.NewBool(false)
 	defer func() {
 		doneFlag.Store(true)
 	}()

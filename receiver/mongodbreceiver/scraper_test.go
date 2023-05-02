@@ -182,7 +182,7 @@ func TestScraperScrape(t *testing.T) {
 				return fc
 			},
 			expectedMetricGen: func(t *testing.T) pmetric.Metrics {
-				goldenPath := filepath.Join("testdata", "scraper", "partial_scrape.yaml")
+				goldenPath := filepath.Join("testdata", "scraper", "partial_scrape.json")
 				expectedMetrics, err := golden.ReadMetrics(goldenPath)
 				require.NoError(t, err)
 				return expectedMetrics
@@ -210,7 +210,7 @@ func TestScraperScrape(t *testing.T) {
 				return fc
 			},
 			expectedMetricGen: func(t *testing.T) pmetric.Metrics {
-				goldenPath := filepath.Join("testdata", "scraper", "partial_scrape.yaml")
+				goldenPath := filepath.Join("testdata", "scraper", "partial_scrape.json")
 				expectedMetrics, err := golden.ReadMetrics(goldenPath)
 				require.NoError(t, err)
 				return expectedMetrics
@@ -241,7 +241,7 @@ func TestScraperScrape(t *testing.T) {
 				return fc
 			},
 			expectedMetricGen: func(t *testing.T) pmetric.Metrics {
-				goldenPath := filepath.Join("testdata", "scraper", "partial_scrape.yaml")
+				goldenPath := filepath.Join("testdata", "scraper", "partial_scrape.json")
 				expectedMetrics, err := golden.ReadMetrics(goldenPath)
 				require.NoError(t, err)
 				return expectedMetrics
@@ -280,7 +280,7 @@ func TestScraperScrape(t *testing.T) {
 				return fc
 			},
 			expectedMetricGen: func(t *testing.T) pmetric.Metrics {
-				goldenPath := filepath.Join("testdata", "scraper", "expected.yaml")
+				goldenPath := filepath.Join("testdata", "scraper", "expected.json")
 				expectedMetrics, err := golden.ReadMetrics(goldenPath)
 				require.NoError(t, err)
 				return expectedMetrics

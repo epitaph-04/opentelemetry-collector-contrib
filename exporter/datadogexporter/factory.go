@@ -32,7 +32,6 @@ import (
 	"go.opentelemetry.io/collector/pdata/plog"
 	"go.opentelemetry.io/collector/pdata/pmetric"
 	"go.opentelemetry.io/collector/pdata/ptrace"
-	"go.uber.org/zap"
 
 	"github.com/open-telemetry/opentelemetry-collector-contrib/exporter/datadogexporter/internal/hostmetadata"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/resourcetotelemetry"
@@ -120,6 +119,11 @@ func defaulttimeoutSettings() exporterhelper.TimeoutSettings {
 
 // createDefaultConfig creates the default exporter configuration
 func (f *factory) createDefaultConfig() component.Config {
+	hostnameSource := HostnameSourceFirstResource
+	if hostmetadata.HostnamePreviewFeatureGate.IsEnabled() {
+		hostnameSource = HostnameSourceConfigOrSystem
+	}
+
 	return &Config{
 		TimeoutSettings: defaulttimeoutSettings(),
 		RetrySettings:   exporterhelper.NewDefaultRetrySettings(),
@@ -139,8 +143,8 @@ func (f *factory) createDefaultConfig() component.Config {
 				InstrumentationScopeMetadataAsTags: false,
 			},
 			HistConfig: HistogramConfig{
-				Mode:             "distributions",
-				SendAggregations: false,
+				Mode:         "distributions",
+				SendCountSum: false,
 			},
 			SumConfig: SumConfig{
 				CumulativeMonotonicMode: CumulativeMonotonicSumModeToDelta,
@@ -165,19 +169,18 @@ func (f *factory) createDefaultConfig() component.Config {
 
 		HostMetadata: HostMetadataConfig{
 			Enabled:        true,
-			HostnameSource: HostnameSourceConfigOrSystem,
+			HostnameSource: hostnameSource,
 		},
 	}
 }
 
 // checkAndCastConfig checks the configuration type and its warnings, and casts it to
 // the Datadog Config struct.
-func checkAndCastConfig(c component.Config, logger *zap.Logger) *Config {
+func checkAndCastConfig(c component.Config) *Config {
 	cfg, ok := c.(*Config)
 	if !ok {
 		panic("programming error: config structure is not of type *datadogexporter.Config")
 	}
-	cfg.logWarnings(logger)
 	return cfg
 }
 
@@ -187,7 +190,7 @@ func (f *factory) createMetricsExporter(
 	set exporter.CreateSettings,
 	c component.Config,
 ) (exporter.Metrics, error) {
-	cfg := checkAndCastConfig(c, set.TelemetrySettings.Logger)
+	cfg := checkAndCastConfig(c)
 
 	hostProvider, err := f.SourceProvider(set.TelemetrySettings, cfg.Hostname)
 	if err != nil {
@@ -253,7 +256,7 @@ func (f *factory) createTracesExporter(
 	set exporter.CreateSettings,
 	c component.Config,
 ) (exporter.Traces, error) {
-	cfg := checkAndCastConfig(c, set.TelemetrySettings.Logger)
+	cfg := checkAndCastConfig(c)
 
 	var (
 		pusher consumer.ConsumeTracesFunc
@@ -291,12 +294,12 @@ func (f *factory) createTracesExporter(
 		tracex, err2 := newTracesExporter(ctx, set, cfg, &f.onceMetadata, hostProvider, traceagent)
 		if err2 != nil {
 			cancel()
-			f.wg.Wait() // then wait for shutdown
 			return nil, err2
 		}
 		pusher = tracex.consumeTraces
 		stop = func(context.Context) error {
-			cancel() // first cancel context
+			cancel()    // first cancel context
+			f.wg.Wait() // then wait for shutdown
 			return nil
 		}
 	}
@@ -321,7 +324,7 @@ func (f *factory) createLogsExporter(
 	set exporter.CreateSettings,
 	c component.Config,
 ) (exporter.Logs, error) {
-	cfg := checkAndCastConfig(c, set.TelemetrySettings.Logger)
+	cfg := checkAndCastConfig(c)
 
 	var pusher consumer.ConsumeLogsFunc
 	hostProvider, err := f.SourceProvider(set.TelemetrySettings, cfg.Hostname)
@@ -343,7 +346,6 @@ func (f *factory) createLogsExporter(
 		exp, err := newLogsExporter(ctx, set, cfg, &f.onceMetadata, hostProvider)
 		if err != nil {
 			cancel()
-			f.wg.Wait() // then wait for shutdown
 			return nil, err
 		}
 		pusher = exp.consumeLogs

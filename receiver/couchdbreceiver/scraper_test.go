@@ -56,7 +56,7 @@ func TestScrape(t *testing.T) {
 		actualMetrics, err := scraper.scrape(context.Background())
 		require.NoError(t, err)
 
-		expectedFile := filepath.Join("testdata", "scraper", "expected.yaml")
+		expectedFile := filepath.Join("testdata", "scraper", "expected.json")
 		expectedMetrics, err := golden.ReadMetrics(expectedFile)
 		require.NoError(t, err)
 
@@ -73,7 +73,7 @@ func TestScrape(t *testing.T) {
 		actualMetrics, err := scraper.scrape(context.Background())
 		require.NoError(t, err)
 
-		expectedFile := filepath.Join("testdata", "scraper", "expected.yaml")
+		expectedFile := filepath.Join("testdata", "scraper", "expected.json")
 		expectedMetrics, err := golden.ReadMetrics(expectedFile)
 		require.NoError(t, err)
 
@@ -178,7 +178,7 @@ func TestMetricSettings(t *testing.T) {
 	metrics, err := scraper.scrape(context.Background())
 	require.NoError(t, err)
 
-	expected, err := golden.ReadMetrics(filepath.Join("testdata", "scraper", "only_db_ops.yaml"))
+	expected, err := golden.ReadMetrics(filepath.Join("testdata", "scraper", "only_db_ops.json"))
 	require.NoError(t, err)
 
 	require.NoError(t, pmetrictest.CompareMetrics(expected, metrics, pmetrictest.IgnoreMetricDataPointsOrder(),

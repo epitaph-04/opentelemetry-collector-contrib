@@ -21,7 +21,6 @@ import (
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/receiver"
 
-	"github.com/open-telemetry/opentelemetry-collector-contrib/internal/coreinternal/consumerretry"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/stanza/adapter"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/stanza/operator"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/stanza/operator/input/journald"
@@ -50,8 +49,7 @@ func (f ReceiverType) Type() component.Type {
 func (f ReceiverType) CreateDefaultConfig() component.Config {
 	return &JournaldConfig{
 		BaseConfig: adapter.BaseConfig{
-			Operators:      []operator.Config{},
-			RetryOnFailure: consumerretry.NewDefaultConfig(),
+			Operators: []operator.Config{},
 		},
 		InputConfig: *journald.NewConfig(),
 	}

@@ -47,9 +47,9 @@ var (
 	defaultLatencyHistogramBucketsMs = []float64{
 		2, 4, 6, 8, 10, 50, 100, 200, 400, 800, 1000, 1400, 2000, 5000, 10_000, 15_000,
 	}
-	defaultPeerAttributes = []string{
-		semconv.AttributeDBName, semconv.AttributeNetSockPeerAddr, semconv.AttributeNetPeerName, semconv.AttributeRPCService, semconv.AttributeNetSockPeerName, semconv.AttributeNetPeerName, semconv.AttributeHTTPURL, semconv.AttributeHTTPTarget,
-	}
+	// PeerAttributes the list of attributes need to match, the higher the front, the higher the priority.
+	// TODO: Consider making this configurable.
+	PeerAttributes = []string{semconv.AttributeDBName, semconv.AttributeNetSockPeerAddr, semconv.AttributeNetPeerName, semconv.AttributeRPCService, semconv.AttributeHTTPURL, semconv.AttributeHTTPTarget}
 )
 
 type metricSeries struct {
@@ -91,18 +91,6 @@ func newProcessor(logger *zap.Logger, config component.Config) *serviceGraphProc
 		bounds = mapDurationsToMillis(pConfig.LatencyHistogramBuckets)
 	}
 
-	if pConfig.CacheLoop <= 0 {
-		pConfig.CacheLoop = time.Minute
-	}
-
-	if pConfig.StoreExpirationLoop <= 0 {
-		pConfig.StoreExpirationLoop = 2 * time.Second
-	}
-
-	if pConfig.VirtualNodePeerAttributes == nil {
-		pConfig.VirtualNodePeerAttributes = defaultPeerAttributes
-	}
-
 	return &serviceGraphProcessor{
 		config:                         pConfig,
 		logger:                         logger,
@@ -139,9 +127,11 @@ func (p *serviceGraphProcessor) Start(_ context.Context, host component.Host) er
 		}
 	}
 
-	go p.cacheLoop(p.config.CacheLoop)
+	// TODO: Consider making this configurable.
+	go p.cacheLoop(time.Minute)
 
-	go p.storeExpirationLoop(p.config.StoreExpirationLoop)
+	// TODO: Consider making this configurable.
+	go p.storeExpirationLoop(2 * time.Second)
 
 	if p.tracesConsumer == nil {
 		p.logger.Info("Started servicegraphconnector")
@@ -236,7 +226,7 @@ func (p *serviceGraphProcessor) aggregateMetrics(ctx context.Context, td ptrace.
 						p.upsertDimensions(clientKind, e.Dimensions, rAttributes, span.Attributes())
 
 						if virtualNodeFeatureGate.IsEnabled() {
-							p.upsertPeerAttributes(p.config.VirtualNodePeerAttributes, e.Peer, span.Attributes())
+							p.upsertPeerAttributes(PeerAttributes, e.Peer, span.Attributes())
 						}
 
 						// A database request will only have one span, we don't wait for the server
@@ -327,16 +317,20 @@ func (p *serviceGraphProcessor) onExpire(e *store.Edge) {
 	stats.Record(context.Background(), statExpiredEdges.M(1))
 
 	if virtualNodeFeatureGate.IsEnabled() {
-		e.ConnectionType = store.VirtualNode
-		if len(e.ClientService) == 0 && e.Key.SpanIDIsEmpty() {
+		// speculate virtual node before edge get expired.
+		// TODO: We could add some logic to check if the server span is an orphan.
+		// https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/17350#discussion_r1099949579
+		if len(e.ClientService) == 0 {
 			e.ClientService = "user"
-			p.onComplete(e)
 		}
 
 		if len(e.ServerService) == 0 {
-			e.ServerService = p.getPeerHost(p.config.VirtualNodePeerAttributes, e.Peer)
-			p.onComplete(e)
+			e.ServerService = p.getPeerHost(PeerAttributes, e.Peer)
 		}
+
+		e.ConnectionType = store.VirtualNode
+
+		p.onComplete(e)
 	}
 }
 
@@ -406,7 +400,7 @@ func buildDimensions(e *store.Edge) pcommon.Map {
 func (p *serviceGraphProcessor) buildMetrics() (pmetric.Metrics, error) {
 	m := pmetric.NewMetrics()
 	ilm := m.ResourceMetrics().AppendEmpty().ScopeMetrics().AppendEmpty()
-	ilm.Scope().SetName("traces_service_graph")
+	ilm.Scope().SetName("traces_service_graph_servicegraphprocessor")
 
 	// Obtain write lock to reset data
 	p.seriesMutex.Lock()

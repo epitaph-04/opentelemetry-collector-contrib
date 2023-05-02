@@ -30,15 +30,19 @@ func Test_limit(t *testing.T) {
 	input.PutInt("test2", 3)
 	input.PutBool("test3", true)
 
-	target := &ottl.StandardTypeGetter[pcommon.Map, pcommon.Map]{
+	target := &ottl.StandardGetSetter[pcommon.Map]{
 		Getter: func(ctx context.Context, tCtx pcommon.Map) (interface{}, error) {
 			return tCtx, nil
+		},
+		Setter: func(ctx context.Context, tCtx pcommon.Map, val interface{}) error {
+			val.(pcommon.Map).CopyTo(tCtx)
+			return nil
 		},
 	}
 
 	tests := []struct {
 		name   string
-		target ottl.PMapGetter[pcommon.Map]
+		target ottl.GetSetter[pcommon.Map]
 		limit  int64
 		keep   []string
 		want   func(pcommon.Map)
@@ -142,18 +146,18 @@ func Test_limit(t *testing.T) {
 func Test_limit_validation(t *testing.T) {
 	tests := []struct {
 		name   string
-		target ottl.PMapGetter[interface{}]
+		target ottl.GetSetter[interface{}]
 		keep   []string
 		limit  int64
 	}{
 		{
 			name:   "limit less than zero",
-			target: &ottl.StandardTypeGetter[interface{}, pcommon.Map]{},
+			target: &ottl.StandardGetSetter[interface{}]{},
 			limit:  int64(-1),
 		},
 		{
 			name:   "limit less than # of keep attrs",
-			target: &ottl.StandardTypeGetter[interface{}, pcommon.Map]{},
+			target: &ottl.StandardGetSetter[interface{}]{},
 			keep:   []string{"test", "test"},
 			limit:  int64(1),
 		},
@@ -168,27 +172,39 @@ func Test_limit_validation(t *testing.T) {
 
 func Test_limit_bad_input(t *testing.T) {
 	input := pcommon.NewValueStr("not a map")
-	target := &ottl.StandardTypeGetter[interface{}, pcommon.Map]{
+	target := &ottl.StandardGetSetter[interface{}]{
 		Getter: func(ctx context.Context, tCtx interface{}) (interface{}, error) {
 			return tCtx, nil
+		},
+		Setter: func(ctx context.Context, tCtx interface{}, val interface{}) error {
+			t.Errorf("nothing should be set in this scenario")
+			return nil
 		},
 	}
 
 	exprFunc, err := Limit[interface{}](target, 1, []string{})
 	assert.NoError(t, err)
-	_, err = exprFunc(nil, input)
-	assert.Error(t, err)
+	result, err := exprFunc(nil, input)
+	assert.NoError(t, err)
+	assert.Nil(t, result)
+	assert.Equal(t, pcommon.NewValueStr("not a map"), input)
 }
 
 func Test_limit_get_nil(t *testing.T) {
-	target := &ottl.StandardTypeGetter[interface{}, pcommon.Map]{
+	target := &ottl.StandardGetSetter[interface{}]{
 		Getter: func(ctx context.Context, tCtx interface{}) (interface{}, error) {
 			return tCtx, nil
+		},
+		Setter: func(ctx context.Context, tCtx interface{}, val interface{}) error {
+			t.Errorf("nothing should be set in this scenario")
+			return nil
 		},
 	}
 
 	exprFunc, err := Limit[interface{}](target, 1, []string{})
 	assert.NoError(t, err)
-	_, err = exprFunc(nil, nil)
-	assert.Error(t, err)
+	result, err := exprFunc(nil, nil)
+	assert.NoError(t, err)
+	assert.Nil(t, result)
+	assert.Nil(t, result)
 }

@@ -22,7 +22,6 @@ import (
 	"strings"
 	"time"
 
-	"go.opentelemetry.io/collector/client"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/pdata/pmetric"
@@ -93,13 +92,9 @@ func (r *statsdReceiver) Start(ctx context.Context, host component.Host) error {
 		return err
 	}
 	r.server = server
-	transferChan := make(chan transport.Metric, 10)
+	var transferChan = make(chan string, 10)
 	ticker := time.NewTicker(r.config.AggregationInterval)
-	err = r.parser.Initialize(
-		r.config.EnableMetricType,
-		r.config.IsMonotonicCounter,
-		r.config.TimerHistogramMapping,
-	)
+	err = r.parser.Initialize(r.config.EnableMetricType, r.config.IsMonotonicCounter, r.config.TimerHistogramMapping)
 	if err != nil {
 		return err
 	}
@@ -114,13 +109,12 @@ func (r *statsdReceiver) Start(ctx context.Context, host component.Host) error {
 		for {
 			select {
 			case <-ticker.C:
-				batchMetrics := r.parser.GetMetrics()
-				for _, batch := range batchMetrics {
-					batchCtx := client.NewContext(ctx, batch.Info)
-					r.Flush(batchCtx, batch.Metrics, r.nextConsumer)
+				metrics := r.parser.GetMetrics()
+				if metrics.ResourceMetrics().At(0).ScopeMetrics().Len() > 0 {
+					r.Flush(ctx, metrics, r.nextConsumer)
 				}
-			case metric := <-transferChan:
-				_ = r.parser.Aggregate(metric.Raw, metric.Addr)
+			case rawMetric := <-transferChan:
+				_ = r.parser.Aggregate(rawMetric)
 			case <-ctx.Done():
 				ticker.Stop()
 				return

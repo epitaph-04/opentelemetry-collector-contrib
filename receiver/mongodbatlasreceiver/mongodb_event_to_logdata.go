@@ -19,7 +19,6 @@ import (
 
 	"go.opentelemetry.io/collector/pdata/pcommon"
 	"go.opentelemetry.io/collector/pdata/plog"
-	"go.uber.org/multierr"
 	"go.uber.org/zap"
 
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/mongodbatlasreceiver/internal/model"
@@ -54,7 +53,7 @@ var severityMap = map[string]plog.SeverityNumber{
 }
 
 // mongoAuditEventToLogRecord converts model.AuditLog event to plog.LogRecordSlice and adds the resource attributes.
-func mongodbAuditEventToLogData(logger *zap.Logger, logs []model.AuditLog, pc ProjectContext, hostname, logName, clusterName, clusterMajorVersion string) (plog.Logs, error) {
+func mongodbAuditEventToLogData(logger *zap.Logger, logs []model.AuditLog, pc ProjectContext, hostname, logName, clusterName, clusterMajorVersion string) plog.Logs {
 	ld := plog.NewLogs()
 	rl := ld.ResourceLogs().AppendEmpty()
 	sl := rl.ScopeLogs().AppendEmpty()
@@ -67,8 +66,6 @@ func mongodbAuditEventToLogData(logger *zap.Logger, logs []model.AuditLog, pc Pr
 	resourceAttrs.PutStr("mongodb_atlas.project", pc.Project.Name)
 	resourceAttrs.PutStr("mongodb_atlas.cluster", clusterName)
 	resourceAttrs.PutStr("mongodb_atlas.host.name", hostname)
-
-	var errs []error
 
 	for _, log := range logs {
 		lr := sl.LogRecords().AppendEmpty()
@@ -131,9 +128,8 @@ func mongodbAuditEventToLogData(logger *zap.Logger, logs []model.AuditLog, pc Pr
 
 		attrs.PutInt("result", int64(log.Result))
 
-		if err = attrs.PutEmptyMap("param").FromRaw(log.Param); err != nil {
-			errs = append(errs, err)
-		}
+		//nolint:errcheck
+		attrs.PutEmptyMap("param").FromRaw(log.Param)
 
 		usersSlice := attrs.PutEmptySlice("users")
 		usersSlice.EnsureCapacity(len(log.Users))
@@ -150,7 +146,7 @@ func mongodbAuditEventToLogData(logger *zap.Logger, logs []model.AuditLog, pc Pr
 		attrs.PutStr("log_name", logName)
 	}
 
-	return ld, multierr.Combine(errs...)
+	return ld
 }
 
 // mongoEventToLogRecord converts model.LogEntry event to plog.LogRecordSlice and adds the resource attributes.

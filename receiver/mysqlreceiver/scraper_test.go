@@ -80,7 +80,7 @@ func TestScrape(t *testing.T) {
 		actualMetrics, err := scraper.scrape(context.Background())
 		require.NoError(t, err)
 
-		expectedFile := filepath.Join("testdata", "scraper", "expected.yaml")
+		expectedFile := filepath.Join("testdata", "scraper", "expected.json")
 		expectedMetrics, err := golden.ReadMetrics(expectedFile)
 		require.NoError(t, err)
 
@@ -115,7 +115,7 @@ func TestScrape(t *testing.T) {
 		actualMetrics, scrapeErr := scraper.scrape(context.Background())
 		require.Error(t, scrapeErr)
 
-		expectedFile := filepath.Join("testdata", "scraper", "expected_partial.yaml")
+		expectedFile := filepath.Join("testdata", "scraper", "expected_partial.json")
 		expectedMetrics, err := golden.ReadMetrics(expectedFile)
 		require.NoError(t, err)
 		assert.NoError(t, pmetrictest.CompareMetrics(actualMetrics, expectedMetrics,
@@ -161,10 +161,6 @@ func readFile(fname string) (map[string]string, error) {
 
 func (c *mockClient) Connect() error {
 	return nil
-}
-
-func (c *mockClient) getVersion() (string, error) {
-	return "8.0.27", nil
 }
 
 func (c *mockClient) getGlobalStats() (map[string]string, error) {

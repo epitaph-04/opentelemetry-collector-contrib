@@ -17,6 +17,7 @@ package mongodbatlasreceiver
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -27,9 +28,9 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/atlas/mongodbatlas"
+	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/component/componenttest"
 	"go.opentelemetry.io/collector/consumer/consumertest"
-	"go.opentelemetry.io/collector/extension/experimental/storage"
 	"go.opentelemetry.io/collector/receiver/receivertest"
 
 	"github.com/open-telemetry/opentelemetry-collector-contrib/internal/coreinternal/golden"
@@ -59,12 +60,29 @@ func TestStartAndShutdown(t *testing.T) {
 				return cfg
 			},
 		},
+		{
+			desc: "invalid storage config",
+			getConfig: func() *Config {
+				cfg := createDefaultConfig().(*Config)
+				cfg.StorageID = &component.ID{}
+				cfg.Events = &EventsConfig{
+					Projects: []*ProjectConfig{
+						{
+							Name: testProjectName,
+						},
+					},
+					PollInterval: time.Minute,
+				}
+				return cfg
+			},
+			expectedStartErr: errors.New("failed to get storage client"),
+		},
 	}
 	for _, tc := range cases {
 		t.Run(tc.desc, func(t *testing.T) {
 			sink := &consumertest.LogsSink{}
 			r := newEventsReceiver(receivertest.NewNopCreateSettings(), tc.getConfig(), sink)
-			err := r.Start(context.Background(), componenttest.NewNopHost(), storage.NewNopClient())
+			err := r.Start(context.Background(), componenttest.NewNopHost())
 			if tc.expectedStartErr != nil {
 				require.ErrorContains(t, err, tc.expectedStartErr.Error())
 			} else {
@@ -97,7 +115,7 @@ func TestContextDone(t *testing.T) {
 	r.client = mClient
 
 	ctx, cancel := context.WithCancel(context.Background())
-	err := r.Start(ctx, componenttest.NewNopHost(), storage.NewNopClient())
+	err := r.Start(ctx, componenttest.NewNopHost())
 	require.NoError(t, err)
 	cancel()
 
@@ -117,11 +135,6 @@ func TestPoll(t *testing.T) {
 				Name: testProjectName,
 			},
 		},
-		Organizations: []*OrgConfig{
-			{
-				ID: testOrgID,
-			},
-		},
 		PollInterval: time.Second,
 	}
 
@@ -131,7 +144,7 @@ func TestPoll(t *testing.T) {
 	mClient.setupMock(t)
 	r.client = mClient
 
-	err := r.Start(context.Background(), componenttest.NewNopHost(), storage.NewNopClient())
+	err := r.Start(context.Background(), componenttest.NewNopHost())
 	require.NoError(t, err)
 
 	require.Eventually(t, func() bool {
@@ -141,17 +154,11 @@ func TestPoll(t *testing.T) {
 	err = r.Shutdown(context.Background())
 	require.NoError(t, err)
 
-	expectedProjectLogs, err := golden.ReadLogs(filepath.Join("testdata", "events", "golden", "project-events.yaml"))
+	expected, err := golden.ReadLogs(filepath.Join("testdata", "events", "golden", "events.json"))
 	require.NoError(t, err)
 
-	expectedOrgLogs, err := golden.ReadLogs(filepath.Join("testdata", "events", "golden", "org-events.yaml"))
-	require.NoError(t, err)
-
-	projectLogs := sink.AllLogs()[0]
-	require.NoError(t, plogtest.CompareLogs(expectedProjectLogs, projectLogs, plogtest.IgnoreObservedTimestamp()))
-
-	orgLogs := sink.AllLogs()[1]
-	require.NoError(t, plogtest.CompareLogs(expectedOrgLogs, orgLogs, plogtest.IgnoreObservedTimestamp()))
+	logs := sink.AllLogs()[0]
+	require.NoError(t, plogtest.CompareLogs(expected, logs, plogtest.IgnoreObservedTimestamp()))
 }
 
 func TestProjectGetFailure(t *testing.T) {
@@ -162,11 +169,6 @@ func TestProjectGetFailure(t *testing.T) {
 				Name: "fake-project",
 			},
 		},
-		Organizations: []*OrgConfig{
-			{
-				ID: "fake-org",
-			},
-		},
 		PollInterval: time.Second,
 	}
 
@@ -174,9 +176,8 @@ func TestProjectGetFailure(t *testing.T) {
 	r := newEventsReceiver(receivertest.NewNopCreateSettings(), cfg, sink)
 	mClient := &mockEventsClient{}
 	mClient.On("GetProject", mock.Anything, "fake-project").Return(nil, fmt.Errorf("unable to get project: %d", http.StatusUnauthorized))
-	mClient.On("GetOrganization", mock.Anything, "fake-org").Return(nil, fmt.Errorf("unable to get org: %d", http.StatusUnauthorized))
 
-	err := r.Start(context.Background(), componenttest.NewNopHost(), storage.NewNopClient())
+	err := r.Start(context.Background(), componenttest.NewNopHost())
 	require.NoError(t, err)
 
 	require.Never(t, func() bool {
@@ -193,9 +194,7 @@ type mockEventsClient struct {
 
 func (mec *mockEventsClient) setupMock(t *testing.T) {
 	mec.setupGetProject()
-	mec.setupGetOrganization()
-	mec.On("GetProjectEvents", mock.Anything, mock.Anything, mock.Anything).Return(mec.loadTestEvents(t, "project-events.json"), false, nil)
-	mec.On("GetOrganizationEvents", mock.Anything, mock.Anything, mock.Anything).Return(mec.loadTestEvents(t, "org-events.json"), false, nil)
+	mec.On("GetEvents", mock.Anything, mock.Anything, mock.Anything).Return(mec.loadTestEvents(t), false, nil)
 }
 
 func (mec *mockEventsClient) setupGetProject() {
@@ -207,15 +206,8 @@ func (mec *mockEventsClient) setupGetProject() {
 	}, nil)
 }
 
-func (mec *mockEventsClient) setupGetOrganization() {
-	mec.On("GetOrganization", mock.Anything, mock.Anything).Return(&mongodbatlas.Organization{
-		ID:    testOrgID,
-		Links: []*mongodbatlas.Link{},
-	}, nil)
-}
-
-func (mec *mockEventsClient) loadTestEvents(t *testing.T, filename string) []*mongodbatlas.Event {
-	testEvents := filepath.Join("testdata", "events", "sample-payloads", filename)
+func (mec *mockEventsClient) loadTestEvents(t *testing.T) []*mongodbatlas.Event {
+	testEvents := filepath.Join("testdata", "events", "sample-payloads", "events.json")
 	eventBytes, err := os.ReadFile(testEvents)
 	require.NoError(t, err)
 
@@ -230,17 +222,7 @@ func (mec *mockEventsClient) GetProject(ctx context.Context, pID string) (*mongo
 	return args.Get(0).(*mongodbatlas.Project), args.Error(1)
 }
 
-func (mec *mockEventsClient) GetProjectEvents(ctx context.Context, pID string, opts *internal.GetEventsOptions) ([]*mongodbatlas.Event, bool, error) {
+func (mec *mockEventsClient) GetEvents(ctx context.Context, pID string, opts *internal.GetEventsOptions) ([]*mongodbatlas.Event, bool, error) {
 	args := mec.Called(ctx, pID, opts)
-	return args.Get(0).([]*mongodbatlas.Event), args.Bool(1), args.Error(2)
-}
-
-func (mec *mockEventsClient) GetOrganization(ctx context.Context, oID string) (*mongodbatlas.Organization, error) {
-	args := mec.Called(ctx, oID)
-	return args.Get(0).(*mongodbatlas.Organization), args.Error(1)
-}
-
-func (mec *mockEventsClient) GetOrganizationEvents(ctx context.Context, oID string, opts *internal.GetEventsOptions) ([]*mongodbatlas.Event, bool, error) {
-	args := mec.Called(ctx, oID, opts)
 	return args.Get(0).([]*mongodbatlas.Event), args.Bool(1), args.Error(2)
 }

@@ -55,7 +55,7 @@ func TestScrape(t *testing.T) {
 	actualMetrics, err := scraper.scrape(context.Background())
 	require.NoError(t, err)
 
-	expectedFile := filepath.Join("testdata", "scraper", "expected.yaml")
+	expectedFile := filepath.Join("testdata", "scraper", "expected.json")
 	expectedMetrics, err := golden.ReadMetrics(expectedFile)
 	require.NoError(t, err)
 

@@ -1,10 +1,4 @@
-type: apachereceiver
-
-status:
-  class: receiver
-  stability: beta
-  pipelines: [metrics]
-  distributions: [contrib]
+name: apachereceiver
 
 resource_attributes:
     apache.server.name:

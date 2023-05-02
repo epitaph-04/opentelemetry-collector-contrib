@@ -17,6 +17,8 @@ package awscloudwatchreceiver // import "github.com/open-telemetry/opentelemetry
 import (
 	"context"
 	"fmt"
+	"io"
+	"os"
 	"path/filepath"
 	"testing"
 	"time"
@@ -28,9 +30,9 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component/componenttest"
 	"go.opentelemetry.io/collector/consumer/consumertest"
+	"go.opentelemetry.io/collector/pdata/plog"
 	"go.uber.org/zap"
 
-	"github.com/open-telemetry/opentelemetry-collector-contrib/internal/coreinternal/golden"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/pdatatest/plogtest"
 )
 
@@ -76,7 +78,7 @@ func TestPrefixedConfig(t *testing.T) {
 	require.NoError(t, err)
 
 	logs := sink.AllLogs()[0]
-	expected, err := golden.ReadLogs(filepath.Join("testdata", "processed", "prefixed.yaml"))
+	expected, err := readLogs(filepath.Join("testdata", "processed", "prefixed.json"))
 	require.NoError(t, err)
 	require.NoError(t, plogtest.CompareLogs(expected, logs, plogtest.IgnoreObservedTimestamp()))
 }
@@ -108,7 +110,7 @@ func TestPrefixedNamedStreamsConfig(t *testing.T) {
 	require.NoError(t, err)
 
 	logs := sink.AllLogs()[0]
-	expected, err := golden.ReadLogs(filepath.Join("testdata", "processed", "prefixed.yaml"))
+	expected, err := readLogs(filepath.Join("testdata", "processed", "prefixed.json"))
 	require.NoError(t, err)
 	require.NoError(t, plogtest.CompareLogs(expected, logs, plogtest.IgnoreObservedTimestamp()))
 }
@@ -266,4 +268,20 @@ func (mc *mockClient) DescribeLogGroupsWithContext(ctx context.Context, input *c
 func (mc *mockClient) FilterLogEventsWithContext(ctx context.Context, input *cloudwatchlogs.FilterLogEventsInput, opts ...request.Option) (*cloudwatchlogs.FilterLogEventsOutput, error) {
 	args := mc.Called(ctx, input, opts)
 	return args.Get(0).(*cloudwatchlogs.FilterLogEventsOutput), args.Error(1)
+}
+
+func readLogs(path string) (plog.Logs, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return plog.Logs{}, err
+	}
+	defer f.Close()
+
+	b, err := io.ReadAll(f)
+	if err != nil {
+		return plog.Logs{}, err
+	}
+
+	unmarshaler := plog.JSONUnmarshaler{}
+	return unmarshaler.UnmarshalLogs(b)
 }

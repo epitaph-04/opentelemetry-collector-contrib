@@ -1,8 +1,0 @@
-type: groupbytrace
-
-status:
-  class: processor
-  stability: beta
-  pipelines: [traces]
-  distributions: [contrib]
-  warnings: [Statefulness]

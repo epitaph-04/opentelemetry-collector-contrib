@@ -318,7 +318,7 @@ func TestAerospikeIntegration(t *testing.T) {
 	require.NoError(t, receiver.Shutdown(context.Background()), "failed shutting down metrics receiver")
 
 	actualMetrics := consumer.AllMetrics()[0]
-	expectedFile := filepath.Join("testdata", "integration", "expected.yaml")
+	expectedFile := filepath.Join("testdata", "integration", "expected.json")
 	expectedMetrics, err := golden.ReadMetrics(expectedFile)
 	require.NoError(t, err, "failed reading expected metrics")
 
@@ -342,7 +342,7 @@ func TestAerospikeIntegration(t *testing.T) {
 	require.NoError(t, receiver.Shutdown(context.Background()), "failed shutting down metrics receiver")
 
 	actualMetrics = consumer.AllMetrics()[0]
-	expectedFile = filepath.Join("testdata", "integration", "expected.yaml")
+	expectedFile = filepath.Join("testdata", "integration", "expected.json")
 	expectedMetrics, err = golden.ReadMetrics(expectedFile)
 	require.NoError(t, err, "failed reading expected metrics")
 

@@ -1,4 +1,4 @@
-type: sshcheckreceiver
+name: sshcheckreceiver
 
 resource_attributes:
   ssh.endpoint:

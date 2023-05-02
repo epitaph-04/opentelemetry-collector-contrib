@@ -29,7 +29,8 @@ import (
 )
 
 const (
-	typeStr = "apache"
+	typeStr   = "apache"
+	stability = component.StabilityLevelBeta
 
 	httpDefaultPort  = "80"
 	httpsDefaultPort = "443"
@@ -40,7 +41,7 @@ func NewFactory() receiver.Factory {
 	return receiver.NewFactory(
 		typeStr,
 		createDefaultConfig,
-		receiver.WithMetrics(createMetricsReceiver, metadata.Stability))
+		receiver.WithMetrics(createMetricsReceiver, stability))
 }
 
 func createDefaultConfig() component.Config {

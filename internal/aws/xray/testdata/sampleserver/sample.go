@@ -32,9 +32,8 @@ func main() {
 		),
 	))
 	server := &http.Server{
-		Addr:              ":8000",
-		Handler:           mux,
-		ReadHeaderTimeout: 20 * time.Second,
+		Addr:    ":8000",
+		Handler: mux,
 	}
 	go func() {
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {

@@ -33,7 +33,6 @@ import (
 	"github.com/open-telemetry/opentelemetry-collector-contrib/connector/spanmetricsconnector/internal/cache"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/connector/spanmetricsconnector/internal/metrics"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/internal/coreinternal/traceutil"
-	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/pdatautil"
 )
 
 const (
@@ -45,10 +44,8 @@ const (
 
 	defaultDimensionsCacheSize = 1000
 
-	metricNameDuration = "duration"
-	metricNameCalls    = "calls"
-
-	defaultUnit = metrics.Milliseconds
+	metricNameLatency = "latency"
+	metricNameCalls   = "calls"
 )
 
 type connectorImp struct {
@@ -64,7 +61,9 @@ type connectorImp struct {
 	// The starting time of the data points.
 	startTimestamp pcommon.Timestamp
 
-	resourceMetrics map[resourceKey]*resourceMetrics
+	// Metrics
+	histograms metrics.HistogramMetrics
+	sums       metrics.SumMetrics
 
 	keyBuf *bytes.Buffer
 
@@ -77,12 +76,6 @@ type connectorImp struct {
 	started bool
 
 	shutdownOnce sync.Once
-}
-
-type resourceMetrics struct {
-	histograms metrics.HistogramMetrics
-	sums       metrics.SumMetrics
-	attributes pcommon.Map
 }
 
 type dimension struct {
@@ -114,11 +107,33 @@ func newConnector(logger *zap.Logger, config component.Config, ticker *clock.Tic
 		return nil, err
 	}
 
+	var histograms metrics.HistogramMetrics
+	if cfg.Histogram.Exponential != nil {
+		maxSize := cfg.Histogram.Exponential.MaxSize
+		if cfg.Histogram.Exponential.MaxSize == 0 {
+			maxSize = structure.DefaultMaxSize
+		}
+		histograms = metrics.NewExponentialHistogramMetrics(maxSize)
+	} else {
+		bounds := defaultHistogramBucketsMs
+		// TODO remove deprecated `latency_histogram_buckets`
+		if cfg.LatencyHistogramBuckets != nil {
+			logger.Warn("latency_histogram_buckets is deprecated. " +
+				"Use `histogram: explicit: buckets` to set histogram buckets")
+			bounds = mapDurationsToMillis(cfg.LatencyHistogramBuckets)
+		}
+		if cfg.Histogram.Explicit != nil && cfg.Histogram.Explicit.Buckets != nil {
+			bounds = mapDurationsToMillis(cfg.Histogram.Explicit.Buckets)
+		}
+		histograms = metrics.NewExplicitHistogramMetrics(bounds)
+	}
+
 	return &connectorImp{
 		logger:                logger,
 		config:                *cfg,
 		startTimestamp:        pcommon.NewTimestampFromTime(time.Now()),
-		resourceMetrics:       make(map[resourceKey]*resourceMetrics),
+		histograms:            histograms,
+		sums:                  metrics.NewSumMetrics(),
 		dimensions:            newDimensions(cfg.Dimensions),
 		keyBuf:                bytes.NewBuffer(make([]byte, 0, 1024)),
 		metricKeyToDimensions: metricKeyToDimensionsCache,
@@ -127,34 +142,16 @@ func newConnector(logger *zap.Logger, config component.Config, ticker *clock.Tic
 	}, nil
 }
 
-func (p *connectorImp) initHistogramMetrics() metrics.HistogramMetrics {
-	cfg := p.config
-	if cfg.Histogram.Exponential != nil {
-		maxSize := structure.DefaultMaxSize
-		if cfg.Histogram.Exponential.MaxSize != 0 {
-			maxSize = cfg.Histogram.Exponential.MaxSize
-		}
-		return metrics.NewExponentialHistogramMetrics(maxSize)
-	}
-	bounds := defaultHistogramBucketsMs
-	if cfg.Histogram.Explicit != nil && cfg.Histogram.Explicit.Buckets != nil {
-		bounds = durationsToUnits(cfg.Histogram.Explicit.Buckets, unitDivider(cfg.Histogram.Unit))
-	}
-	return metrics.NewExplicitHistogramMetrics(bounds)
+// durationToMillis converts the given duration to the number of milliseconds it represents.
+// Note that this can return sub-millisecond (i.e. < 1ms) values as well.
+func durationToMillis(d time.Duration) float64 {
+	return float64(d.Nanoseconds()) / float64(time.Millisecond.Nanoseconds())
 }
 
-// unitDivider returns a unit divider to convert nanoseconds to milliseconds or seconds.
-func unitDivider(u metrics.Unit) int64 {
-	return map[metrics.Unit]int64{
-		metrics.Seconds:      time.Second.Nanoseconds(),
-		metrics.Milliseconds: time.Millisecond.Nanoseconds(),
-	}[u]
-}
-
-func durationsToUnits(vs []time.Duration, unitDivider int64) []float64 {
+func mapDurationsToMillis(vs []time.Duration) []float64 {
 	vsm := make([]float64, len(vs))
 	for i, v := range vs {
-		vsm[i] = float64(v.Nanoseconds()) / float64(unitDivider)
+		vsm[i] = durationToMillis(v)
 	}
 	return vsm
 }
@@ -198,7 +195,8 @@ func (p *connectorImp) Capabilities() consumer.Capabilities {
 }
 
 // ConsumeTraces implements the consumer.Traces interface.
-// It aggregates the trace data to generate metrics.
+// It aggregates the trace data to generate metrics, forwarding these metrics to the discovered metrics exporter.
+// The original input trace data will be forwarded to the next consumer, unmodified.
 func (p *connectorImp) ConsumeTraces(_ context.Context, traces ptrace.Traces) error {
 	p.lock.Lock()
 	p.aggregateMetrics(traces)
@@ -221,49 +219,53 @@ func (p *connectorImp) exportMetrics(ctx context.Context) {
 	}
 }
 
-// buildMetrics collects the computed raw metrics data and builds OTLP metrics.
+// buildMetrics collects the computed raw metrics data, builds the metrics object and
+// writes the raw metrics data into the metrics object.
 func (p *connectorImp) buildMetrics() pmetric.Metrics {
 	m := pmetric.NewMetrics()
-	for _, rawMetrics := range p.resourceMetrics {
-		rm := m.ResourceMetrics().AppendEmpty()
-		rawMetrics.attributes.CopyTo(rm.Resource().Attributes())
+	ilm := m.ResourceMetrics().AppendEmpty().ScopeMetrics().AppendEmpty()
+	ilm.Scope().SetName("spanmetricsconnector")
 
-		sm := rm.ScopeMetrics().AppendEmpty()
-		sm.Scope().SetName("spanmetricsconnector")
-
-		sums := rawMetrics.sums
-		metric := sm.Metrics().AppendEmpty()
-		metric.SetName(buildMetricName(p.config.Namespace, metricNameCalls))
-		sums.BuildMetrics(metric, p.startTimestamp, p.config.GetAggregationTemporality())
-
-		histograms := rawMetrics.histograms
-		metric = sm.Metrics().AppendEmpty()
-		metric.SetName(buildMetricName(p.config.Namespace, metricNameDuration))
-		metric.SetUnit(p.config.Histogram.Unit.String())
-		histograms.BuildMetrics(metric, p.startTimestamp, p.config.GetAggregationTemporality())
-	}
+	p.buildCallsMetrics(ilm)
+	p.buildLatencyMetrics(ilm)
 
 	return m
+}
+
+// buildCallsMetrics collects the raw call count metrics and builds
+// a explicit or exponential buckets histogram scope metric.
+func (p *connectorImp) buildLatencyMetrics(ilm pmetric.ScopeMetrics) {
+	m := ilm.Metrics().AppendEmpty()
+	m.SetName(buildMetricName(p.config.Namespace, metricNameLatency))
+	m.SetUnit("ms")
+
+	p.histograms.BuildMetrics(m, p.startTimestamp, p.config.GetAggregationTemporality())
+}
+
+// buildCallsMetrics collects the raw call count metrics and builds
+// a sum scope metric.
+func (p *connectorImp) buildCallsMetrics(ilm pmetric.ScopeMetrics) {
+	m := ilm.Metrics().AppendEmpty()
+	m.SetName(buildMetricName(p.config.Namespace, metricNameCalls))
+
+	p.sums.BuildMetrics(m, p.startTimestamp, p.config.GetAggregationTemporality())
 }
 
 func (p *connectorImp) resetState() {
 	// If delta metrics, reset accumulated data
 	if p.config.GetAggregationTemporality() == pmetric.AggregationTemporalityDelta {
-		p.resourceMetrics = make(map[resourceKey]*resourceMetrics)
+		p.histograms.Reset(false)
+		p.sums.Reset()
 		p.metricKeyToDimensions.Purge()
 	} else {
 		p.metricKeyToDimensions.RemoveEvictedItems()
 
 		// Exemplars are only relevant to this batch of traces, so must be cleared within the lock
-		for _, m := range p.resourceMetrics {
-			m.histograms.Reset(true)
-		}
+		p.histograms.Reset(true)
 	}
 }
 
 // aggregateMetrics aggregates the raw metrics from the input trace data.
-//
-// Metrics are grouped by resource attributes.
 // Each metric is identified by a key that is built from the service name
 // and span metadata such as name, kind, status_code and any additional
 // dimensions the user has configured.
@@ -275,12 +277,6 @@ func (p *connectorImp) aggregateMetrics(traces ptrace.Traces) {
 		if !ok {
 			continue
 		}
-
-		rm := p.getOrCreateResourceMetrics(resourceAttr)
-		sums := rm.sums
-		histograms := rm.histograms
-
-		unitDivider := unitDivider(p.config.Histogram.Unit)
 		serviceName := serviceAttr.Str()
 		ilsSlice := rspans.ScopeSpans()
 		for j := 0; j < ilsSlice.Len(); j++ {
@@ -289,11 +285,11 @@ func (p *connectorImp) aggregateMetrics(traces ptrace.Traces) {
 			for k := 0; k < spans.Len(); k++ {
 				span := spans.At(k)
 				// Protect against end timestamps before start timestamps. Assume 0 duration.
-				duration := float64(0)
+				latencyMs := float64(0)
 				startTime := span.StartTimestamp()
 				endTime := span.EndTimestamp()
 				if endTime > startTime {
-					duration = float64(endTime-startTime) / float64(unitDivider)
+					latencyMs = float64(endTime-startTime) / float64(time.Millisecond.Nanoseconds())
 				}
 				key := p.buildKey(serviceName, span, p.dimensions, resourceAttr)
 
@@ -304,34 +300,18 @@ func (p *connectorImp) aggregateMetrics(traces ptrace.Traces) {
 				}
 
 				// aggregate histogram metrics
-				h := histograms.GetOrCreate(key, attributes)
-				h.Observe(duration)
+				h := p.histograms.GetOrCreate(key, attributes)
+				h.Observe(latencyMs)
 				if !span.TraceID().IsEmpty() {
-					h.AddExemplar(span.TraceID(), span.SpanID(), duration)
+					h.AddExemplar(span.TraceID(), span.SpanID(), latencyMs)
 				}
 
 				// aggregate sums metrics
-				s := sums.GetOrCreate(key, attributes)
+				s := p.sums.GetOrCreate(key, attributes)
 				s.Add(1)
 			}
 		}
 	}
-}
-
-type resourceKey [16]byte
-
-func (p *connectorImp) getOrCreateResourceMetrics(attr pcommon.Map) *resourceMetrics {
-	key := resourceKey(pdatautil.MapHash(attr))
-	v, ok := p.resourceMetrics[key]
-	if !ok {
-		v = &resourceMetrics{
-			histograms: p.initHistogramMetrics(),
-			sums:       metrics.NewSumMetrics(),
-			attributes: attr,
-		}
-		p.resourceMetrics[key] = v
-	}
-	return v
 }
 
 func (p *connectorImp) buildAttributes(serviceName string, span ptrace.Span, resourceAttrs pcommon.Map) pcommon.Map {

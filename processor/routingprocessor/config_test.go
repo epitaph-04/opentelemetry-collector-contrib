@@ -22,8 +22,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/confmap/confmaptest"
-
-	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl"
 )
 
 func TestLoadConfig(t *testing.T) {
@@ -39,7 +37,6 @@ func TestLoadConfig(t *testing.T) {
 				DefaultExporters: []string{"otlp"},
 				AttributeSource:  "context",
 				FromAttribute:    "X-Tenant",
-				ErrorMode:        ottl.PropagateError,
 				Table: []RoutingTableItem{
 					{
 						Value:     "acme",
@@ -59,7 +56,6 @@ func TestLoadConfig(t *testing.T) {
 				DefaultExporters: []string{"logging/default"},
 				AttributeSource:  "context",
 				FromAttribute:    "X-Custom-Metrics-Header",
-				ErrorMode:        ottl.PropagateError,
 				Table: []RoutingTableItem{
 					{
 						Value:     "acme",
@@ -79,7 +75,6 @@ func TestLoadConfig(t *testing.T) {
 				DefaultExporters: []string{"logging/default"},
 				AttributeSource:  "context",
 				FromAttribute:    "X-Custom-Logs-Header",
-				ErrorMode:        ottl.PropagateError,
 				Table: []RoutingTableItem{
 					{
 						Value:     "acme",
@@ -99,7 +94,6 @@ func TestLoadConfig(t *testing.T) {
 				DefaultExporters: []string{"jaeger"},
 				AttributeSource:  resourceAttributeSource,
 				FromAttribute:    "X-Tenant",
-				ErrorMode:        ottl.IgnoreError,
 				Table: []RoutingTableItem{
 					{
 						Value:     "acme",
@@ -113,7 +107,6 @@ func TestLoadConfig(t *testing.T) {
 			id:         component.NewIDWithName(typeStr, "ottl"),
 			expected: &Config{
 				DefaultExporters: []string{"jaeger"},
-				ErrorMode:        ottl.PropagateError,
 				Table: []RoutingTableItem{
 					{
 						Statement: "route() where resource.attributes[\"X-Tenant\"] == \"acme\"",

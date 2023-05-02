@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:generate mdatagen metadata.yaml
-
 // package deltatorateprocessor implements a processor which
 // converts delta sum metrics to rates.
 package deltatorateprocessor // import "github.com/open-telemetry/opentelemetry-collector-contrib/processor/deltatorateprocessor"

@@ -125,8 +125,7 @@ func TestMongoEventToAuditLogData5_0(t *testing.T) {
 		Project: mongodbatlas.Project{Name: "Project"},
 	}
 
-	ld, err := mongodbAuditEventToLogData(zaptest.NewLogger(t), []model.AuditLog{mongoevent}, pc, "hostname", "logName", "clusterName", "5.0")
-	require.NoError(t, err)
+	ld := mongodbAuditEventToLogData(zaptest.NewLogger(t), []model.AuditLog{mongoevent}, pc, "hostname", "logName", "clusterName", "5.0")
 	rl := ld.ResourceLogs().At(0)
 	resourceAttrs := rl.Resource().Attributes()
 	sl := rl.ScopeLogs().At(0)
@@ -182,8 +181,7 @@ func TestMongoEventToAuditLogData4_2(t *testing.T) {
 		Project: mongodbatlas.Project{Name: "Project"},
 	}
 
-	ld, err := mongodbAuditEventToLogData(zaptest.NewLogger(t), []model.AuditLog{mongoevent}, pc, "hostname", "logName", "clusterName", "4.2")
-	require.NoError(t, err)
+	ld := mongodbAuditEventToLogData(zaptest.NewLogger(t), []model.AuditLog{mongoevent}, pc, "hostname", "logName", "clusterName", "4.2")
 	rl := ld.ResourceLogs().At(0)
 	resourceAttrs := rl.Resource().Attributes()
 	sl := rl.ScopeLogs().At(0)

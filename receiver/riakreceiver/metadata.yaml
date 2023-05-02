@@ -1,4 +1,4 @@
-type: riakreceiver
+name: riakreceiver
 
 resource_attributes:
   riak.node.name:

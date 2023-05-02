@@ -50,19 +50,13 @@ func TestRoundTrip(t *testing.T) {
 			"valid_round_tripper",
 			defaultRoundTripper,
 			false,
-			&Config{Region: "region", Service: "service", credsProvider: awsCredsProvider},
+			&Config{Region: "region", Service: "service"},
 		},
 		{
 			"error_round_tripper",
 			errorRoundTripper,
 			true,
-			&Config{Region: "region", Service: "service", AssumeRole: AssumeRole{ARN: "rolearn", STSRegion: "region"}, credsProvider: awsCredsProvider},
-		},
-		{
-			"error_invalid_credsProvider",
-			defaultRoundTripper,
-			true,
-			&Config{Region: "region", Service: "service", credsProvider: nil},
+			&Config{Region: "region", Service: "service", AssumeRole: AssumeRole{ARN: "rolearn", STSRegion: "region"}},
 		},
 	}
 
@@ -85,6 +79,7 @@ func TestRoundTrip(t *testing.T) {
 			defer server.Close()
 			serverURL, _ := url.Parse(server.URL)
 
+			testcase.cfg.credsProvider = awsCredsProvider
 			sa := newSigv4Extension(testcase.cfg, awsSDKInfo, zap.NewNop())
 			rt, err := sa.RoundTripper(testcase.rt)
 			assert.NoError(t, err)

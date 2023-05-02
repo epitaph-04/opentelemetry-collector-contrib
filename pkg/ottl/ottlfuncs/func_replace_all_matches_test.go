@@ -30,15 +30,19 @@ func Test_replaceAllMatches(t *testing.T) {
 	input.PutStr("test2", "hello")
 	input.PutStr("test3", "goodbye")
 
-	target := &ottl.StandardTypeGetter[pcommon.Map, pcommon.Map]{
+	target := &ottl.StandardGetSetter[pcommon.Map]{
 		Getter: func(ctx context.Context, tCtx pcommon.Map) (interface{}, error) {
 			return tCtx, nil
+		},
+		Setter: func(ctx context.Context, tCtx pcommon.Map, val interface{}) error {
+			val.(pcommon.Map).CopyTo(tCtx)
+			return nil
 		},
 	}
 
 	tests := []struct {
 		name        string
-		target      ottl.PMapGetter[pcommon.Map]
+		target      ottl.GetSetter[pcommon.Map]
 		pattern     string
 		replacement string
 		want        func(pcommon.Map)
@@ -88,27 +92,38 @@ func Test_replaceAllMatches(t *testing.T) {
 
 func Test_replaceAllMatches_bad_input(t *testing.T) {
 	input := pcommon.NewValueStr("not a map")
-	target := &ottl.StandardTypeGetter[interface{}, pcommon.Map]{
+	target := &ottl.StandardGetSetter[interface{}]{
 		Getter: func(ctx context.Context, tCtx interface{}) (interface{}, error) {
 			return tCtx, nil
+		},
+		Setter: func(ctx context.Context, tCtx interface{}, val interface{}) error {
+			t.Errorf("nothing should be set in this scenario")
+			return nil
 		},
 	}
 
 	exprFunc, err := ReplaceAllMatches[interface{}](target, "*", "{replacement}")
 	assert.NoError(t, err)
-	_, err = exprFunc(nil, input)
-	assert.Error(t, err)
+	result, err := exprFunc(nil, input)
+	assert.NoError(t, err)
+	assert.Nil(t, result)
+	assert.Equal(t, pcommon.NewValueStr("not a map"), input)
 }
 
 func Test_replaceAllMatches_get_nil(t *testing.T) {
-	target := &ottl.StandardTypeGetter[interface{}, pcommon.Map]{
+	target := &ottl.StandardGetSetter[interface{}]{
 		Getter: func(ctx context.Context, tCtx interface{}) (interface{}, error) {
 			return tCtx, nil
+		},
+		Setter: func(ctx context.Context, tCtx interface{}, val interface{}) error {
+			t.Errorf("nothing should be set in this scenario")
+			return nil
 		},
 	}
 
 	exprFunc, err := ReplaceAllMatches[interface{}](target, "*", "{anything}")
 	assert.NoError(t, err)
-	_, err = exprFunc(nil, nil)
-	assert.Error(t, err)
+	result, err := exprFunc(nil, nil)
+	assert.NoError(t, err)
+	assert.Nil(t, result)
 }

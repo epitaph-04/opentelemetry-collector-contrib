@@ -30,15 +30,19 @@ func Test_keepKeys(t *testing.T) {
 	input.PutInt("test2", 3)
 	input.PutBool("test3", true)
 
-	target := &ottl.StandardTypeGetter[pcommon.Map, pcommon.Map]{
+	target := &ottl.StandardGetSetter[pcommon.Map]{
 		Getter: func(ctx context.Context, tCtx pcommon.Map) (interface{}, error) {
 			return tCtx, nil
+		},
+		Setter: func(ctx context.Context, tCtx pcommon.Map, val interface{}) error {
+			val.(pcommon.Map).CopyTo(tCtx)
+			return nil
 		},
 	}
 
 	tests := []struct {
 		name   string
-		target ottl.PMapGetter[pcommon.Map]
+		target ottl.GetSetter[pcommon.Map]
 		keys   []string
 		want   func(pcommon.Map)
 	}{
@@ -71,6 +75,12 @@ func Test_keepKeys(t *testing.T) {
 			keys:   []string{"no match"},
 			want:   func(expectedMap pcommon.Map) {},
 		},
+		{
+			name:   "input is not a pcommon.Map",
+			target: target,
+			keys:   []string{"no match"},
+			want:   func(expectedMap pcommon.Map) {},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -93,9 +103,13 @@ func Test_keepKeys(t *testing.T) {
 
 func Test_keepKeys_bad_input(t *testing.T) {
 	input := pcommon.NewValueStr("not a map")
-	target := &ottl.StandardTypeGetter[interface{}, pcommon.Map]{
+	target := &ottl.StandardGetSetter[interface{}]{
 		Getter: func(ctx context.Context, tCtx interface{}) (interface{}, error) {
 			return tCtx, nil
+		},
+		Setter: func(ctx context.Context, tCtx interface{}, val interface{}) error {
+			t.Errorf("nothing should be set in this scenario")
+			return nil
 		},
 	}
 
@@ -105,13 +119,19 @@ func Test_keepKeys_bad_input(t *testing.T) {
 	assert.NoError(t, err)
 
 	_, err = exprFunc(nil, input)
-	assert.Error(t, err)
+	assert.Nil(t, err)
+
+	assert.Equal(t, pcommon.NewValueStr("not a map"), input)
 }
 
 func Test_keepKeys_get_nil(t *testing.T) {
-	target := &ottl.StandardTypeGetter[interface{}, pcommon.Map]{
+	target := &ottl.StandardGetSetter[interface{}]{
 		Getter: func(ctx context.Context, tCtx interface{}) (interface{}, error) {
 			return tCtx, nil
+		},
+		Setter: func(ctx context.Context, tCtx interface{}, val interface{}) error {
+			t.Errorf("nothing should be set in this scenario")
+			return nil
 		},
 	}
 
@@ -119,6 +139,7 @@ func Test_keepKeys_get_nil(t *testing.T) {
 
 	exprFunc, err := KeepKeys[interface{}](target, keys)
 	assert.NoError(t, err)
-	_, err = exprFunc(nil, nil)
-	assert.Error(t, err)
+	result, err := exprFunc(nil, nil)
+	assert.NoError(t, err)
+	assert.Nil(t, result)
 }

@@ -49,7 +49,3 @@ func (bwc *bufferedWriteCloser) Close() error {
 		bwc.wrapped.Close(),
 	)
 }
-
-func (bwc *bufferedWriteCloser) flush() error {
-	return bwc.buffered.Flush()
-}

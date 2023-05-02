@@ -247,10 +247,10 @@ func TestCompareTraces(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			dir := filepath.Join("testdata", tc.name)
 
-			expected, err := golden.ReadTraces(filepath.Join(dir, "expected.yaml"))
+			expected, err := golden.ReadTraces(filepath.Join(dir, "expected.json"))
 			require.NoError(t, err)
 
-			actual, err := golden.ReadTraces(filepath.Join(dir, "actual.yaml"))
+			actual, err := golden.ReadTraces(filepath.Join(dir, "actual.json"))
 			require.NoError(t, err)
 
 			err = CompareTraces(expected, actual)

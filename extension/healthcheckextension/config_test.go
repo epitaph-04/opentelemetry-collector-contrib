@@ -53,7 +53,6 @@ func TestLoadConfig(t *testing.T) {
 				},
 				CheckCollectorPipeline: defaultCheckCollectorPipelineSettings(),
 				Path:                   "/",
-				ResponseBody:           nil,
 			},
 		},
 		{

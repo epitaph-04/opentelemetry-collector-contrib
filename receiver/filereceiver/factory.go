@@ -46,6 +46,5 @@ func createMetricsReceiver(
 		consumer: consumer,
 		path:     cfg.Path,
 		logger:   settings.Logger,
-		throttle: cfg.Throttle,
 	}, nil
 }

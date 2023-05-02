@@ -20,6 +20,7 @@ package memcachedreceiver
 import (
 	"context"
 	"fmt"
+	"os"
 	"testing"
 	"time"
 
@@ -28,9 +29,9 @@ import (
 	"github.com/testcontainers/testcontainers-go/wait"
 	"go.opentelemetry.io/collector/component/componenttest"
 	"go.opentelemetry.io/collector/consumer/consumertest"
+	"go.opentelemetry.io/collector/pdata/pmetric"
 	"go.opentelemetry.io/collector/receiver/receivertest"
 
-	"github.com/open-telemetry/opentelemetry-collector-contrib/internal/coreinternal/golden"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/pdatatest/pmetrictest"
 )
 
@@ -70,7 +71,10 @@ func TestIntegration(t *testing.T) {
 
 	actualMetrics := consumer.AllMetrics()[0]
 
-	expectedMetrics, err := golden.ReadMetrics("./testdata/expected_metrics/test_scraper/expected.yaml")
+	expectedFileBytes, err := os.ReadFile("./testdata/expected_metrics/test_scraper/expected.json")
+	require.NoError(t, err)
+	unmarshaller := &pmetric.JSONUnmarshaler{}
+	expectedMetrics, err := unmarshaller.UnmarshalMetrics(expectedFileBytes)
 	require.NoError(t, err)
 
 	require.NoError(t, pmetrictest.CompareMetrics(expectedMetrics, actualMetrics, pmetrictest.IgnoreMetricValues(),

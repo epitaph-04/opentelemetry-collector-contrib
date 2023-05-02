@@ -37,7 +37,6 @@ import (
 	"github.com/open-telemetry/opentelemetry-collector-contrib/exporter/azuredataexplorerexporter"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/exporter/azuremonitorexporter"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/exporter/carbonexporter"
-	"github.com/open-telemetry/opentelemetry-collector-contrib/exporter/cassandraexporter"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/exporter/clickhouseexporter"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/exporter/coralogixexporter"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/exporter/datadogexporter"
@@ -117,7 +116,6 @@ import (
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/awsxrayreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/azureblobreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/azureeventhubreceiver"
-	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/azuremonitorreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/bigipreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/carbonreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/chronyreceiver"
@@ -148,7 +146,6 @@ import (
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/kafkametricsreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/kafkareceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/kubeletstatsreceiver"
-	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/lokireceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/memcachedreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/mongodbatlasreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/mongodbreceiver"
@@ -231,7 +228,6 @@ func Components() (otelcol.Factories, error) {
 		awsxrayreceiver.NewFactory(),
 		azureblobreceiver.NewFactory(),
 		azureeventhubreceiver.NewFactory(),
-		azuremonitorreceiver.NewFactory(),
 		bigipreceiver.NewFactory(),
 		carbonreceiver.NewFactory(),
 		chronyreceiver.NewFactory(),
@@ -262,7 +258,6 @@ func Components() (otelcol.Factories, error) {
 		k8seventsreceiver.NewFactory(),
 		k8sobjectsreceiver.NewFactory(),
 		kubeletstatsreceiver.NewFactory(),
-		lokireceiver.NewFactory(),
 		memcachedreceiver.NewFactory(),
 		mongodbatlasreceiver.NewFactory(),
 		mongodbreceiver.NewFactory(),
@@ -320,7 +315,6 @@ func Components() (otelcol.Factories, error) {
 		azuredataexplorerexporter.NewFactory(),
 		azuremonitorexporter.NewFactory(),
 		carbonexporter.NewFactory(),
-		cassandraexporter.NewFactory(),
 		clickhouseexporter.NewFactory(),
 		coralogixexporter.NewFactory(),
 		datadogexporter.NewFactory(),

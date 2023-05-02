@@ -308,7 +308,6 @@ type ResourceAttributesSettings struct {
 	MongodbAtlasProcessTypeName ResourceAttributeSettings `mapstructure:"mongodb_atlas.process.type_name"`
 	MongodbAtlasProjectID       ResourceAttributeSettings `mapstructure:"mongodb_atlas.project.id"`
 	MongodbAtlasProjectName     ResourceAttributeSettings `mapstructure:"mongodb_atlas.project.name"`
-	MongodbAtlasUserAlias       ResourceAttributeSettings `mapstructure:"mongodb_atlas.user.alias"`
 }
 
 func DefaultResourceAttributesSettings() ResourceAttributesSettings {
@@ -339,9 +338,6 @@ func DefaultResourceAttributesSettings() ResourceAttributesSettings {
 		},
 		MongodbAtlasProjectName: ResourceAttributeSettings{
 			Enabled: true,
-		},
-		MongodbAtlasUserAlias: ResourceAttributeSettings{
-			Enabled: false,
 		},
 	}
 }
@@ -4540,15 +4536,6 @@ func WithMongodbAtlasProjectName(val string) ResourceMetricsOption {
 	return func(ras ResourceAttributesSettings, rm pmetric.ResourceMetrics) {
 		if ras.MongodbAtlasProjectName.Enabled {
 			rm.Resource().Attributes().PutStr("mongodb_atlas.project.name", val)
-		}
-	}
-}
-
-// WithMongodbAtlasUserAlias sets provided value as "mongodb_atlas.user.alias" attribute for current resource.
-func WithMongodbAtlasUserAlias(val string) ResourceMetricsOption {
-	return func(ras ResourceAttributesSettings, rm pmetric.ResourceMetrics) {
-		if ras.MongodbAtlasUserAlias.Enabled {
-			rm.Resource().Attributes().PutStr("mongodb_atlas.user.alias", val)
 		}
 	}
 }

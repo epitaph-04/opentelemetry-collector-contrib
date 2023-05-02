@@ -106,7 +106,7 @@ func Test_WindowsPerfCounterScraper(t *testing.T) {
 				},
 				ScraperControllerSettings: scraperhelper.ScraperControllerSettings{CollectionInterval: time.Minute},
 			},
-			expectedMetricPath: filepath.Join("testdata", "scraper", "standard.yaml"),
+			expectedMetricPath: filepath.Join("testdata", "scraper", "standard.json"),
 		},
 		{
 			name: "SumMetric",
@@ -123,7 +123,7 @@ func Test_WindowsPerfCounterScraper(t *testing.T) {
 				},
 				ScraperControllerSettings: scraperhelper.ScraperControllerSettings{CollectionInterval: time.Minute},
 			},
-			expectedMetricPath: filepath.Join("testdata", "scraper", "sum_metric.yaml"),
+			expectedMetricPath: filepath.Join("testdata", "scraper", "sum_metric.json"),
 		},
 		{
 			name: "NoMetricDefinition",
@@ -133,7 +133,7 @@ func Test_WindowsPerfCounterScraper(t *testing.T) {
 				},
 				ScraperControllerSettings: scraperhelper.ScraperControllerSettings{CollectionInterval: time.Minute},
 			},
-			expectedMetricPath: filepath.Join("testdata", "scraper", "no_metric_def.yaml"),
+			expectedMetricPath: filepath.Join("testdata", "scraper", "no_metric_def.json"),
 		},
 		{
 			name: "InvalidCounter",

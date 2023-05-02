@@ -47,9 +47,8 @@ func server() {
 	})
 
 	server := &http.Server{
-		Addr:              fmt.Sprintf(":%v", os.Args[1]),
-		Handler:           mux,
-		ReadHeaderTimeout: 20 * time.Second,
+		Addr:    fmt.Sprintf(":%v", os.Args[1]),
+		Handler: mux,
 	}
 
 	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {

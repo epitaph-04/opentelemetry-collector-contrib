@@ -29,7 +29,6 @@ import (
 	"go.opentelemetry.io/collector/consumer/consumertest"
 	"go.opentelemetry.io/collector/receiver/receivertest"
 
-	"github.com/open-telemetry/opentelemetry-collector-contrib/internal/coreinternal/consumerretry"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/stanza/adapter"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/stanza/operator"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/stanza/operator/input/journald"
@@ -69,8 +68,7 @@ func TestInputConfigFailure(t *testing.T) {
 func testdataConfigYaml() *JournaldConfig {
 	return &JournaldConfig{
 		BaseConfig: adapter.BaseConfig{
-			Operators:      []operator.Config{},
-			RetryOnFailure: consumerretry.NewDefaultConfig(),
+			Operators: []operator.Config{},
 		},
 		InputConfig: func() journald.Config {
 			c := journald.NewConfig()

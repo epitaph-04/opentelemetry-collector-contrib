@@ -31,15 +31,19 @@ func Test_replaceAllPatterns(t *testing.T) {
 	input.PutStr("test2", "hello")
 	input.PutStr("test3", "goodbye world1 and world2")
 
-	target := &ottl.StandardTypeGetter[pcommon.Map, pcommon.Map]{
+	target := &ottl.StandardGetSetter[pcommon.Map]{
 		Getter: func(ctx context.Context, tCtx pcommon.Map) (interface{}, error) {
 			return tCtx, nil
+		},
+		Setter: func(ctx context.Context, tCtx pcommon.Map, val interface{}) error {
+			val.(pcommon.Map).CopyTo(tCtx)
+			return nil
 		},
 	}
 
 	tests := []struct {
 		name        string
-		target      ottl.PMapGetter[pcommon.Map]
+		target      ottl.GetSetter[pcommon.Map]
 		mode        string
 		pattern     string
 		replacement string
@@ -169,9 +173,13 @@ func Test_replaceAllPatterns(t *testing.T) {
 func Test_replaceAllPatterns_bad_input(t *testing.T) {
 	input := pcommon.NewValueStr("not a map")
 
-	target := &ottl.StandardTypeGetter[interface{}, pcommon.Map]{
+	target := &ottl.StandardGetSetter[interface{}]{
 		Getter: func(ctx context.Context, tCtx interface{}) (interface{}, error) {
 			return tCtx, nil
+		},
+		Setter: func(ctx context.Context, tCtx interface{}, val interface{}) error {
+			t.Errorf("nothing should be set in this scenario")
+			return nil
 		},
 	}
 
@@ -179,13 +187,19 @@ func Test_replaceAllPatterns_bad_input(t *testing.T) {
 	assert.Nil(t, err)
 
 	_, err = exprFunc(nil, input)
-	assert.Error(t, err)
+	assert.Nil(t, err)
+
+	assert.Equal(t, pcommon.NewValueStr("not a map"), input)
 }
 
 func Test_replaceAllPatterns_get_nil(t *testing.T) {
-	target := &ottl.StandardTypeGetter[interface{}, pcommon.Map]{
+	target := &ottl.StandardGetSetter[interface{}]{
 		Getter: func(ctx context.Context, tCtx interface{}) (interface{}, error) {
 			return tCtx, nil
+		},
+		Setter: func(ctx context.Context, tCtx interface{}, val interface{}) error {
+			t.Errorf("nothing should be set in this scenario")
+			return nil
 		},
 	}
 
@@ -193,14 +207,18 @@ func Test_replaceAllPatterns_get_nil(t *testing.T) {
 	assert.NoError(t, err)
 
 	_, err = exprFunc(nil, nil)
-	assert.Error(t, err)
+	assert.Nil(t, err)
 }
 
 func Test_replaceAllPatterns_invalid_pattern(t *testing.T) {
-	target := &ottl.StandardTypeGetter[interface{}, pcommon.Map]{
+	target := &ottl.StandardGetSetter[interface{}]{
 		Getter: func(ctx context.Context, tCtx interface{}) (interface{}, error) {
 			t.Errorf("nothing should be received in this scenario")
 			return nil, nil
+		},
+		Setter: func(ctx context.Context, tCtx interface{}, val interface{}) error {
+			t.Errorf("nothing should be set in this scenario")
+			return nil
 		},
 	}
 
@@ -212,10 +230,14 @@ func Test_replaceAllPatterns_invalid_pattern(t *testing.T) {
 }
 
 func Test_replaceAllPatterns_invalid_model(t *testing.T) {
-	target := &ottl.StandardTypeGetter[interface{}, pcommon.Map]{
+	target := &ottl.StandardGetSetter[interface{}]{
 		Getter: func(ctx context.Context, tCtx interface{}) (interface{}, error) {
 			t.Errorf("nothing should be received in this scenario")
 			return nil, nil
+		},
+		Setter: func(ctx context.Context, tCtx interface{}, val interface{}) error {
+			t.Errorf("nothing should be set in this scenario")
+			return nil
 		},
 	}
 

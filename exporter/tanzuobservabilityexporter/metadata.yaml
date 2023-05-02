@@ -1,7 +1,0 @@
-type: tanzuobservability
-
-status:
-  class: exporter
-  stability: beta
-  pipelines: [traces, metrics]
-  distributions: [contrib]

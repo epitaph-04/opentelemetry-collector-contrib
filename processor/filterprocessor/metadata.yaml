@@ -1,8 +1,0 @@
-type: filter
-
-status:
-  class: processor
-  stability: alpha
-  pipelines: [traces, metrics, logs]
-  distributions: [core,contrib]
-  warnings: [Orphaned Telemetry, Other]

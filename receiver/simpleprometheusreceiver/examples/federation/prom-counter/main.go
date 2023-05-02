@@ -40,9 +40,8 @@ func initMeter() api.Meter {
 	mux := http.NewServeMux()
 	mux.Handle("/", promhttp.Handler())
 	server := &http.Server{
-		Addr:              ":8080",
-		Handler:           mux,
-		ReadHeaderTimeout: 20 * time.Second,
+		Addr:    ":8080",
+		Handler: mux,
 	}
 	go func() {
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {

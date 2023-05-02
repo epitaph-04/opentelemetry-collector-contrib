@@ -250,17 +250,13 @@ func (s *logsReceiver) collectAuditLogs(pc ProjectContext, hostname, logName, cl
 		s.log.Warn("Failed to retrieve audit logs: "+logName, zap.Error(err))
 	}
 
-	plog, err := mongodbAuditEventToLogData(s.log,
+	plog := mongodbAuditEventToLogData(s.log,
 		logs,
 		pc,
 		hostname,
 		logName,
 		clusterName,
 		clusterMajorVersion)
-	if err != nil {
-		s.log.Warn("Failed to translate audit logs: "+logName, zap.Error(err))
-	}
-
 	err = s.consumer.ConsumeLogs(context.Background(), plog)
 	if err != nil {
 		s.log.Error("Failed to consume logs", zap.Error(err))

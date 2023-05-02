@@ -26,12 +26,11 @@ import (
 	"go.opentelemetry.io/collector/processor/processortest"
 
 	"github.com/open-telemetry/opentelemetry-collector-contrib/internal/coreinternal/attraction"
-	"github.com/open-telemetry/opentelemetry-collector-contrib/processor/attributesprocessor/internal/metadata"
 )
 
 func TestFactory_Type(t *testing.T) {
 	factory := NewFactory()
-	assert.Equal(t, factory.Type(), component.Type(metadata.Type))
+	assert.Equal(t, factory.Type(), component.Type(typeStr))
 }
 
 func TestFactory_CreateDefaultConfig(t *testing.T) {

@@ -56,7 +56,7 @@ func (hc *healthCheckExtension) Start(_ context.Context, host component.Host) er
 	if !hc.config.CheckCollectorPipeline.Enabled {
 		// Mount HC handler
 		mux := http.NewServeMux()
-		mux.Handle(hc.config.Path, hc.baseHandler())
+		mux.Handle(hc.config.Path, hc.state.Handler())
 		hc.server.Handler = mux
 		hc.stopCh = make(chan struct{})
 		go func() {
@@ -81,7 +81,7 @@ func (hc *healthCheckExtension) Start(_ context.Context, host component.Host) er
 		ticker := time.NewTicker(time.Second)
 
 		mux := http.NewServeMux()
-		mux.Handle(hc.config.Path, hc.checkCollectorPipelineHandler())
+		mux.Handle(hc.config.Path, hc.handler())
 		hc.server.Handler = mux
 		hc.stopCh = make(chan struct{})
 		go func() {
@@ -109,35 +109,13 @@ func (hc *healthCheckExtension) Start(_ context.Context, host component.Host) er
 	return nil
 }
 
-// base handler function
-func (hc *healthCheckExtension) baseHandler() http.Handler {
-	if hc.config.ResponseBody != nil {
-		return http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-			if hc.state.Get() == healthcheck.Ready {
-				w.WriteHeader(http.StatusOK)
-				_, _ = w.Write([]byte(hc.config.ResponseBody.Healthy))
-			} else {
-				w.WriteHeader(http.StatusServiceUnavailable)
-				_, _ = w.Write([]byte(hc.config.ResponseBody.Unhealthy))
-			}
-		})
-	}
-	return hc.state.Handler()
-}
-
 // new handler function used for check collector pipeline
-func (hc *healthCheckExtension) checkCollectorPipelineHandler() http.Handler {
+func (hc *healthCheckExtension) handler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		if hc.check() && hc.state.Get() == healthcheck.Ready {
-			w.WriteHeader(http.StatusOK)
-			if hc.config.ResponseBody != nil {
-				_, _ = w.Write([]byte(hc.config.ResponseBody.Healthy))
-			}
+			w.WriteHeader(200)
 		} else {
-			w.WriteHeader(http.StatusInternalServerError)
-			if hc.config.ResponseBody != nil {
-				_, _ = w.Write([]byte(hc.config.ResponseBody.Unhealthy))
-			}
+			w.WriteHeader(500)
 		}
 	})
 }

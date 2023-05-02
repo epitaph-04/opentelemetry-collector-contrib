@@ -22,6 +22,7 @@ import (
 	"github.com/Azure/azure-kusto-go/kusto"
 	kustoerrors "github.com/Azure/azure-kusto-go/kusto/data/errors"
 	"github.com/Azure/azure-kusto-go/kusto/ingest"
+	"github.com/Azure/go-autorest/autorest/azure/auth"
 	jsoniter "github.com/json-iterator/go"
 	"go.opentelemetry.io/collector/pdata/pcommon"
 	"go.opentelemetry.io/collector/pdata/plog"
@@ -155,12 +156,12 @@ func (e *adxDataProducer) Close(context.Context) error {
 
 // Create an exporter. The exporter instantiates a client , creates the ingestor and then sends data through it
 
-func newExporter(config *Config, logger *zap.Logger, telemetryDataType int, version string) (*adxDataProducer, error) {
+func newExporter(config *Config, logger *zap.Logger, telemetryDataType int) (*adxDataProducer, error) {
 	tableName, err := getTableName(config, telemetryDataType)
 	if err != nil {
 		return nil, err
 	}
-	metricClient, err := buildAdxClient(config, version)
+	metricClient, err := buildAdxClient(config)
 
 	if err != nil {
 		return nil, err
@@ -215,10 +216,12 @@ func getMappingRef(config *Config, telemetryDataType int) ingest.FileOption {
 	return nil
 }
 
-func buildAdxClient(config *Config, version string) (*kusto.Client, error) {
-	kcsb := kusto.NewConnectionStringBuilder(config.ClusterURI).WithAadAppKey(config.ApplicationID, string(config.ApplicationKey), config.TenantID)
-	kcsb.SetConnectorDetails("OpenTelemetry", version, "", "", false, "", kusto.StringPair{})
-	client, err := kusto.New(kcsb)
+func buildAdxClient(config *Config) (*kusto.Client, error) {
+	authorizer := kusto.Authorization{
+		Config: auth.NewClientCredentialsConfig(config.ApplicationID,
+			string(config.ApplicationKey), config.TenantID),
+	}
+	client, err := kusto.New(config.ClusterURI, authorizer)
 	return client, err
 }
 

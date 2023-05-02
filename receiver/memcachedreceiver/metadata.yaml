@@ -1,4 +1,4 @@
-type: memcachedreceiver
+name: memcachedreceiver
 
 attributes:
   command:

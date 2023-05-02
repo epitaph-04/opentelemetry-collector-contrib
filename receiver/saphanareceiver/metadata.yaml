@@ -1,4 +1,4 @@
-type: saphanareceiver
+name: saphanareceiver
 resource_attributes:
   saphana.host:
     type: string

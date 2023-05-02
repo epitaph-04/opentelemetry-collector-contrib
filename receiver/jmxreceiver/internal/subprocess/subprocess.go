@@ -22,10 +22,10 @@ import (
 	"os"
 	"os/exec"
 	"sync"
-	"sync/atomic"
 	"syscall"
 	"time"
 
+	"go.uber.org/atomic"
 	"go.uber.org/zap"
 )
 
@@ -163,11 +163,9 @@ type processReturned struct {
 }
 
 func newProcessReturned() *processReturned {
-	isOpen := &atomic.Bool{}
-	isOpen.Store(true)
 	pr := processReturned{
 		ReturnedChan: make(chan error),
-		isOpen:       isOpen,
+		isOpen:       atomic.NewBool(true),
 		lock:         &sync.Mutex{},
 	}
 	return &pr

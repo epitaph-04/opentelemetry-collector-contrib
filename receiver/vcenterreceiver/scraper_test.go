@@ -32,7 +32,6 @@ import (
 func TestScrape(t *testing.T) {
 	ctx := context.Background()
 	mockServer := mock.MockServer(t, false)
-	defer mockServer.Close()
 
 	cfg := &Config{
 		MetricsBuilderConfig: metadata.DefaultMetricsBuilderConfig(),
@@ -47,7 +46,6 @@ func TestScrape(t *testing.T) {
 func TestScrape_TLS(t *testing.T) {
 	ctx := context.Background()
 	mockServer := mock.MockServer(t, true)
-	defer mockServer.Close()
 
 	cfg := &Config{
 		MetricsBuilderConfig: metadata.DefaultMetricsBuilderConfig(),
@@ -69,7 +67,7 @@ func testScrape(ctx context.Context, t *testing.T, cfg *Config) {
 	require.NoError(t, err)
 	require.NotEqual(t, metrics.MetricCount(), 0)
 
-	goldenPath := filepath.Join("testdata", "metrics", "expected.yaml")
+	goldenPath := filepath.Join("testdata", "metrics", "expected.json")
 	expectedMetrics, err := golden.ReadMetrics(goldenPath)
 	require.NoError(t, err)
 

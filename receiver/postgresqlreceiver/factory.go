@@ -29,14 +29,15 @@ import (
 )
 
 const (
-	typeStr = "postgresql"
+	typeStr   = "postgresql"
+	stability = component.StabilityLevelBeta
 )
 
 func NewFactory() receiver.Factory {
 	return receiver.NewFactory(
 		typeStr,
 		createDefaultConfig,
-		receiver.WithMetrics(createMetricsReceiver, metadata.Stability))
+		receiver.WithMetrics(createMetricsReceiver, stability))
 }
 
 func createDefaultConfig() component.Config {

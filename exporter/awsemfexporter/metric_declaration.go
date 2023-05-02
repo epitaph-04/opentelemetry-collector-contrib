@@ -186,9 +186,8 @@ func (lm *LabelMatcher) init() (err error) {
 	if len(lm.Separator) == 0 {
 		lm.Separator = ";"
 	}
-
-	lm.compiledRegex, err = regexp.Compile(lm.Regex)
-	return err
+	lm.compiledRegex = regexp.MustCompile(lm.Regex)
+	return
 }
 
 // Matches returns true if given set of labels matches the LabelMatcher's rules.

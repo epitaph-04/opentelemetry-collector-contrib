@@ -31,7 +31,6 @@ var patternKeyToAttributeMap = map[string]string{
 	"TaskId":               "aws.ecs.task.id",
 	"NodeName":             "k8s.node.name",
 	"PodName":              "pod",
-	"ServiceName":          "service.name",
 	"ContainerInstanceId":  "aws.ecs.container.instance.id",
 	"TaskDefinitionFamily": "aws.ecs.task.family",
 }

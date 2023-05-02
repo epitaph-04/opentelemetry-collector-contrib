@@ -16,9 +16,7 @@ package filereceiver // import "github.com/open-telemetry/opentelemetry-collecto
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"io"
 	"os"
 
 	"go.opentelemetry.io/collector/component"
@@ -31,7 +29,6 @@ type fileReceiver struct {
 	path     string
 	logger   *zap.Logger
 	cancel   context.CancelFunc
-	throttle float64
 }
 
 func (r *fileReceiver) Start(_ context.Context, _ component.Host) error {
@@ -43,17 +40,8 @@ func (r *fileReceiver) Start(_ context.Context, _ component.Host) error {
 		return fmt.Errorf("failed to open file %q: %w", r.path, err)
 	}
 
-	fr := newFileReader(r.consumer, file, newReplayTimer(r.throttle))
-	go func() {
-		err := fr.readAll(ctx)
-		if err != nil {
-			if errors.Is(err, io.EOF) {
-				r.logger.Debug("EOF reached")
-			} else {
-				r.logger.Error("failed to read input file", zap.Error(err))
-			}
-		}
-	}()
+	fr := newFileReader(r.logger, r.consumer, file)
+	go fr.readAll(ctx)
 	return nil
 }
 

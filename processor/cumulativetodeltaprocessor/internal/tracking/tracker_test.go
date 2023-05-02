@@ -16,7 +16,6 @@ package tracking
 
 import (
 	"context"
-	"sync/atomic"
 	"testing"
 	"time"
 
@@ -24,6 +23,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/pdata/pcommon"
 	"go.opentelemetry.io/collector/pdata/pmetric"
+	"go.uber.org/atomic"
 	"go.uber.org/zap"
 )
 
@@ -213,7 +213,7 @@ func Test_metricTracker_removeStale(t *testing.T) {
 func Test_metricTracker_sweeper(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	sweepEvent := make(chan pcommon.Timestamp)
-	closed := &atomic.Bool{}
+	closed := atomic.NewBool(false)
 
 	onSweep := func(staleBefore pcommon.Timestamp) {
 		sweepEvent <- staleBefore

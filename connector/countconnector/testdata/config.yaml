@@ -88,31 +88,6 @@
         conditions:
           - IsMatch(resource.attributes["host.name"], "pod-l") == true
           - IsMatch(resource.attributes["foo"], "bar-l") == true
-  count/attribute:
-    spans:
-      my.span.count:
-        description: My span count by environment.
-        attributes:
-          - key: env
-    spanevents:
-      my.spanevent.count:
-        description: My span event count by environment.
-        attributes:
-          - key: env
-    metrics:
-      my.metric.count:
-        description: My metric count.
-        # Metrics do not have attributes.
-    datapoints:
-      my.datapoint.count:
-        description: My data point count by environment.
-        attributes:
-          - key: env
-    logs:
-      my.logrecord.count:
-        description: My log record count by environment.
-        attributes:
-          - key: env
   count/multiple_metrics:
     spans:
       my.span.count:
@@ -121,10 +96,6 @@
         description: Limited span count.
         conditions:
           - IsMatch(resource.attributes["host.name"], "pod-s") == true
-        attributes:
-          - key: env
-          - key: component
-            default_value: other
     spanevents:
       my.spanevent.count:
         description: My span event count.
@@ -132,10 +103,6 @@
         description: Limited span event count.
         conditions:
           - IsMatch(resource.attributes["host.name"], "pod-e") == true
-        attributes:
-          - key: env
-          - key: component
-            default_value: other
     metrics:
       my.metric.count:
         description: My metric count.
@@ -150,10 +117,6 @@
         description: Limited data point count.
         conditions:
           - IsMatch(resource.attributes["host.name"], "pod-d") == true
-        attributes:
-          - key: env
-          - key: component
-            default_value: other
     logs:
       my.logrecord.count:
         description: My log record count.
@@ -161,7 +124,3 @@
         description: Limited log record count.
         conditions:
           - IsMatch(resource.attributes["host.name"], "pod-l") == true
-        attributes:
-          - key: env
-          - key: component
-            default_value: other

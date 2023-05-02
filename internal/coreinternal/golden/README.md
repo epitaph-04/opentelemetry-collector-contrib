@@ -1,6 +1,6 @@
 # golden
 
-The package golden provides utilities for reading and writing files with metrics, traces and logs in YAML format. 
+The package golden provides utilities for reading and writing files with metrics, traces and logs in JSON format. 
 The package is expected to be used with pkg/pdatatest module.
 
 ## Generating an expected result file
@@ -32,7 +32,7 @@ func TestScraper(t *testing.T) {
 	actualMetrics, err := scraper.scrape(context.Background())
 	require.NoError(t, err)
 
-	expectedFile := filepath.Join("testdata", "scraper", "expected.yaml")
+	expectedFile := filepath.Join("testdata", "scraper", "expected.json")
 
 	golden.WriteMetrics(t, expectedFile, actualMetrics) // This line is temporary! TODO remove this!!
 

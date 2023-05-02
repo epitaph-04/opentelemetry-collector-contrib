@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:generate mdatagen metadata.yaml
-
 package tanzuobservabilityexporter // import "github.com/open-telemetry/opentelemetry-collector-contrib/exporter/tanzuobservabilityexporter"
 
 import (
@@ -23,12 +21,12 @@ import (
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/exporter"
 	"go.opentelemetry.io/collector/exporter/exporterhelper"
-
-	"github.com/open-telemetry/opentelemetry-collector-contrib/exporter/tanzuobservabilityexporter/internal/metadata"
 )
 
 const (
 	exporterType = "tanzuobservability"
+	// The stability level of the exporter.
+	stability = component.StabilityLevelBeta
 )
 
 // NewFactory creates a factory for the exporter.
@@ -36,8 +34,8 @@ func NewFactory() exporter.Factory {
 	return exporter.NewFactory(
 		exporterType,
 		createDefaultConfig,
-		exporter.WithTraces(createTracesExporter, metadata.Stability),
-		exporter.WithMetrics(createMetricsExporter, metadata.Stability),
+		exporter.WithTraces(createTracesExporter, stability),
+		exporter.WithMetrics(createMetricsExporter, stability),
 	)
 }
 

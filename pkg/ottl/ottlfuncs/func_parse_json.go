@@ -16,6 +16,7 @@ package ottlfuncs // import "github.com/open-telemetry/opentelemetry-collector-c
 
 import (
 	"context"
+	"fmt"
 
 	jsoniter "github.com/json-iterator/go"
 	"go.opentelemetry.io/collector/pdata/pcommon"
@@ -32,14 +33,18 @@ import (
 //	JSON null    -> nil
 //	JSON arrays  -> pdata.SliceValue
 //	JSON objects -> map[string]any
-func ParseJSON[K any](target ottl.StringGetter[K]) (ottl.ExprFunc[K], error) {
+func ParseJSON[K any](target ottl.Getter[K]) (ottl.ExprFunc[K], error) {
 	return func(ctx context.Context, tCtx K) (interface{}, error) {
 		targetVal, err := target.Get(ctx, tCtx)
 		if err != nil {
 			return nil, err
 		}
+		jsonStr, ok := targetVal.(string)
+		if !ok {
+			return nil, fmt.Errorf("target must be a string but got %T", targetVal)
+		}
 		var parsedValue map[string]interface{}
-		err = jsoniter.UnmarshalFromString(targetVal, &parsedValue)
+		err = jsoniter.UnmarshalFromString(jsonStr, &parsedValue)
 		if err != nil {
 			return nil, err
 		}

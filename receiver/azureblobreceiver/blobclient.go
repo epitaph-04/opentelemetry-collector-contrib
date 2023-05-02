@@ -27,43 +27,49 @@ type blobClient interface {
 }
 
 type azureBlobClient struct {
-	serviceClient *azblob.Client
+	serviceClient *azblob.ServiceClient
 	logger        *zap.Logger
 }
 
 var _ blobClient = (*azureBlobClient)(nil)
 
-func (bc *azureBlobClient) readBlob(ctx context.Context, containerName string, blobName string) (*bytes.Buffer, error) {
+func (bc *azureBlobClient) getBlockBlob(containerName string, blobName string) azblob.BlockBlobClient {
+	containerClient := bc.serviceClient.NewContainerClient(containerName)
 
+	return containerClient.NewBlockBlobClient(blobName)
+}
+
+func (bc *azureBlobClient) readBlob(ctx context.Context, containerName string, blobName string) (*bytes.Buffer, error) {
+	blockBlob := bc.getBlockBlob(containerName, blobName)
 	defer func() {
-		_, blobDeleteErr := bc.serviceClient.DeleteBlob(ctx, containerName, blobName, nil)
+		_, blobDeleteErr := blockBlob.Delete(ctx, nil)
 		if blobDeleteErr != nil {
 			bc.logger.Error("failed to delete blob", zap.Error(blobDeleteErr))
 		}
 	}()
 
-	get, err := bc.serviceClient.DownloadStream(ctx, containerName, blobName, nil)
+	get, err := blockBlob.Download(ctx, nil)
 	if err != nil {
 		return nil, err
 	}
 
 	downloadedData := &bytes.Buffer{}
-	retryReader := get.NewRetryReader(ctx, &azblob.RetryReaderOptions{})
-	defer retryReader.Close()
+	reader := get.Body(nil)
+	defer reader.Close()
 
-	_, err = downloadedData.ReadFrom(retryReader)
+	_, err = downloadedData.ReadFrom(reader)
 
 	return downloadedData, err
 }
 
 func newBlobClient(connectionString string, logger *zap.Logger) (*azureBlobClient, error) {
-	serviceClient, err := azblob.NewClientFromConnectionString(connectionString, nil)
+	serviceClient, err := azblob.NewServiceClientFromConnectionString(connectionString, nil)
 	if err != nil {
 		return nil, err
 	}
 
 	return &azureBlobClient{
-		serviceClient,
+		&serviceClient,
 		logger,
 	}, nil
 }

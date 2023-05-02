@@ -1,4 +1,4 @@
-type: mysqlreceiver
+name: mysqlreceiver
 
 resource_attributes:
   mysql.instance.endpoint:

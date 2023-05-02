@@ -33,7 +33,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"sync/atomic"
+
+	"go.uber.org/atomic"
 )
 
 // ReqSender is a direct port of
@@ -56,7 +57,7 @@ func NewReqSender(ctx context.Context, client *http.Client,
 		requests:       make(chan *http.Request),
 		workerCount:    workerCount,
 		ctx:            ctx,
-		runningWorkers: &atomic.Int64{},
+		runningWorkers: atomic.NewInt64(0),
 	}
 }
 

@@ -257,7 +257,7 @@ func TestScrape(t *testing.T) {
 				}
 
 				expectedMetricGen := func(t *testing.T) pmetric.Metrics {
-					goldenPath := filepath.Join("testdata", "expected_metrics", "1_scalar_metrics_golden.yaml")
+					goldenPath := filepath.Join("testdata", "expected_metrics", "1_scalar_metrics_golden.json")
 					expectedMetrics, err := golden.ReadMetrics(goldenPath)
 					require.NoError(t, err)
 					return expectedMetrics
@@ -304,7 +304,7 @@ func TestScrape(t *testing.T) {
 				}
 
 				expectedMetricGen := func(t *testing.T) pmetric.Metrics {
-					goldenPath := filepath.Join("testdata", "expected_metrics", "1_scalar_metrics_golden.yaml")
+					goldenPath := filepath.Join("testdata", "expected_metrics", "1_scalar_metrics_golden.json")
 					expectedMetrics, err := golden.ReadMetrics(goldenPath)
 					require.NoError(t, err)
 					return expectedMetrics
@@ -353,8 +353,7 @@ func TestScrape(t *testing.T) {
 				}
 
 				expectedMetricGen := func(t *testing.T) pmetric.Metrics {
-					goldenPath := filepath.Join("testdata", "expected_metrics",
-						"2_scalar_metrics_sum_cumulative_golden.yaml")
+					goldenPath := filepath.Join("testdata", "expected_metrics", "2_scalar_metrics_sum_cumulative_golden.json")
 					expectedMetrics, err := golden.ReadMetrics(goldenPath)
 					require.NoError(t, err)
 					return expectedMetrics
@@ -403,8 +402,7 @@ func TestScrape(t *testing.T) {
 				}
 
 				expectedMetricGen := func(t *testing.T) pmetric.Metrics {
-					goldenPath := filepath.Join("testdata", "expected_metrics",
-						"3_scalar_metrics_sum_delta_golden.yaml")
+					goldenPath := filepath.Join("testdata", "expected_metrics", "3_scalar_metrics_sum_delta_golden.json")
 					expectedMetrics, err := golden.ReadMetrics(goldenPath)
 					require.NoError(t, err)
 					return expectedMetrics
@@ -468,7 +466,7 @@ func TestScrape(t *testing.T) {
 				}
 
 				expectedMetricGen := func(t *testing.T) pmetric.Metrics {
-					goldenPath := filepath.Join("testdata", "expected_metrics", "4_scalar_multiple_metrics_golden.yaml")
+					goldenPath := filepath.Join("testdata", "expected_metrics", "4_scalar_multiple_metrics_golden.json")
 					expectedMetrics, err := golden.ReadMetrics(goldenPath)
 					require.NoError(t, err)
 					return expectedMetrics
@@ -534,7 +532,7 @@ func TestScrape(t *testing.T) {
 				}
 
 				expectedMetricGen := func(t *testing.T) pmetric.Metrics {
-					goldenPath := filepath.Join("testdata", "expected_metrics", "5_scalar_metric_w_attr_golden.yaml")
+					goldenPath := filepath.Join("testdata", "expected_metrics", "5_scalar_metric_w_attr_golden.json")
 					expectedMetrics, err := golden.ReadMetrics(goldenPath)
 					require.NoError(t, err)
 					return expectedMetrics
@@ -606,8 +604,7 @@ func TestScrape(t *testing.T) {
 				}
 
 				expectedMetricGen := func(t *testing.T) pmetric.Metrics {
-					goldenPath := filepath.Join("testdata", "expected_metrics",
-						"6_scalar_metric_w_multi_datapoint_golden.yaml")
+					goldenPath := filepath.Join("testdata", "expected_metrics", "6_scalar_metric_w_multi_datapoint_golden.json")
 					expectedMetrics, err := golden.ReadMetrics(goldenPath)
 					require.NoError(t, err)
 					return expectedMetrics
@@ -753,7 +750,7 @@ func TestScrape(t *testing.T) {
 				}
 
 				expectedMetricGen := func(t *testing.T) pmetric.Metrics {
-					goldenPath := filepath.Join("testdata", "expected_metrics", "7_indexed_metrics_golden.yaml")
+					goldenPath := filepath.Join("testdata", "expected_metrics", "7_indexed_metrics_golden.json")
 					expectedMetrics, err := golden.ReadMetrics(goldenPath)
 					require.NoError(t, err)
 					return expectedMetrics
@@ -817,7 +814,7 @@ func TestScrape(t *testing.T) {
 				}
 
 				expectedMetricGen := func(t *testing.T) pmetric.Metrics {
-					goldenPath := filepath.Join("testdata", "expected_metrics", "7_indexed_metrics_golden.yaml")
+					goldenPath := filepath.Join("testdata", "expected_metrics", "7_indexed_metrics_golden.json")
 					expectedMetrics, err := golden.ReadMetrics(goldenPath)
 					require.NoError(t, err)
 					return expectedMetrics
@@ -883,8 +880,7 @@ func TestScrape(t *testing.T) {
 				}
 
 				expectedMetricGen := func(t *testing.T) pmetric.Metrics {
-					goldenPath := filepath.Join("testdata", "expected_metrics",
-						"8_indexed_metrics_sum_cumulative_golden.yaml")
+					goldenPath := filepath.Join("testdata", "expected_metrics", "8_indexed_metrics_sum_cumulative_golden.json")
 					expectedMetrics, err := golden.ReadMetrics(goldenPath)
 					require.NoError(t, err)
 					return expectedMetrics
@@ -950,8 +946,7 @@ func TestScrape(t *testing.T) {
 				}
 
 				expectedMetricGen := func(t *testing.T) pmetric.Metrics {
-					goldenPath := filepath.Join("testdata", "expected_metrics",
-						"9_indexed_metrics_sum_delta_golden.yaml")
+					goldenPath := filepath.Join("testdata", "expected_metrics", "9_indexed_metrics_sum_delta_golden.json")
 					expectedMetrics, err := golden.ReadMetrics(goldenPath)
 					require.NoError(t, err)
 					return expectedMetrics
@@ -1033,8 +1028,7 @@ func TestScrape(t *testing.T) {
 				}
 
 				expectedMetricGen := func(t *testing.T) pmetric.Metrics {
-					goldenPath := filepath.Join("testdata", "expected_metrics",
-						"10_indexed_scalar_metrics_same_resource_golden.yaml")
+					goldenPath := filepath.Join("testdata", "expected_metrics", "10_indexed_scalar_metrics_same_resource_golden.json")
 					expectedMetrics, err := golden.ReadMetrics(goldenPath)
 					require.NoError(t, err)
 					return expectedMetrics
@@ -1127,8 +1121,7 @@ func TestScrape(t *testing.T) {
 				}
 
 				expectedMetricGen := func(t *testing.T) pmetric.Metrics {
-					goldenPath := filepath.Join("testdata", "expected_metrics",
-						"11_indexed_multiple_metrics_same_resource_golden.yaml")
+					goldenPath := filepath.Join("testdata", "expected_metrics", "11_indexed_multiple_metrics_same_resource_golden.json")
 					expectedMetrics, err := golden.ReadMetrics(goldenPath)
 					require.NoError(t, err)
 					return expectedMetrics
@@ -1219,8 +1212,7 @@ func TestScrape(t *testing.T) {
 				}
 
 				expectedMetricGen := func(t *testing.T) pmetric.Metrics {
-					goldenPath := filepath.Join("testdata", "expected_metrics",
-						"12_indexed_metrics_w_all_attrs_golden.yaml")
+					goldenPath := filepath.Join("testdata", "expected_metrics", "12_indexed_metrics_w_all_attrs_golden.json")
 					expectedMetrics, err := golden.ReadMetrics(goldenPath)
 					require.NoError(t, err)
 					return expectedMetrics
@@ -1452,8 +1444,7 @@ func TestScrape(t *testing.T) {
 				}
 
 				expectedMetricGen := func(t *testing.T) pmetric.Metrics {
-					goldenPath := filepath.Join("testdata", "expected_metrics",
-						"13_indexed_metrics_w_column_oid_attr_golden.yaml")
+					goldenPath := filepath.Join("testdata", "expected_metrics", "13_indexed_metrics_w_column_oid_attr_golden.json")
 					expectedMetrics, err := golden.ReadMetrics(goldenPath)
 					require.NoError(t, err)
 					return expectedMetrics
@@ -1530,8 +1521,7 @@ func TestScrape(t *testing.T) {
 				}
 
 				expectedMetricGen := func(t *testing.T) pmetric.Metrics {
-					goldenPath := filepath.Join("testdata", "expected_metrics",
-						"13_indexed_metrics_w_column_oid_attr_golden.yaml")
+					goldenPath := filepath.Join("testdata", "expected_metrics", "13_indexed_metrics_w_column_oid_attr_golden.json")
 					expectedMetrics, err := golden.ReadMetrics(goldenPath)
 					require.NoError(t, err)
 					return expectedMetrics
@@ -1608,8 +1598,7 @@ func TestScrape(t *testing.T) {
 				}
 
 				expectedMetricGen := func(t *testing.T) pmetric.Metrics {
-					goldenPath := filepath.Join("testdata", "expected_metrics",
-						"14_indexed_column_oid_float_attr_golden.yaml")
+					goldenPath := filepath.Join("testdata", "expected_metrics", "14_indexed_column_oid_float_attr_golden.json")
 					expectedMetrics, err := golden.ReadMetrics(goldenPath)
 					require.NoError(t, err)
 					return expectedMetrics
@@ -1686,8 +1675,7 @@ func TestScrape(t *testing.T) {
 				}
 
 				expectedMetricGen := func(t *testing.T) pmetric.Metrics {
-					goldenPath := filepath.Join("testdata", "expected_metrics",
-						"15_indexed_column_oid_int_attr_golden.yaml")
+					goldenPath := filepath.Join("testdata", "expected_metrics", "15_indexed_column_oid_int_attr_golden.json")
 					expectedMetrics, err := golden.ReadMetrics(goldenPath)
 					require.NoError(t, err)
 					return expectedMetrics
@@ -1772,8 +1760,7 @@ func TestScrape(t *testing.T) {
 				}
 
 				expectedMetricGen := func(t *testing.T) pmetric.Metrics {
-					goldenPath := filepath.Join("testdata", "expected_metrics",
-						"16_indexed_prefix_res_attr_golden.yaml")
+					goldenPath := filepath.Join("testdata", "expected_metrics", "16_indexed_prefix_res_attr_golden.json")
 					expectedMetrics, err := golden.ReadMetrics(goldenPath)
 					require.NoError(t, err)
 					return expectedMetrics
@@ -2018,7 +2005,7 @@ func TestScrape(t *testing.T) {
 				}
 
 				expectedMetricGen := func(t *testing.T) pmetric.Metrics {
-					goldenPath := filepath.Join("testdata", "expected_metrics", "17_indexed_oid_res_attr_golden.yaml")
+					goldenPath := filepath.Join("testdata", "expected_metrics", "17_indexed_oid_res_attr_golden.json")
 					expectedMetrics, err := golden.ReadMetrics(goldenPath)
 					require.NoError(t, err)
 					return expectedMetrics
@@ -2116,7 +2103,7 @@ func TestScrape(t *testing.T) {
 				}
 
 				expectedMetricGen := func(t *testing.T) pmetric.Metrics {
-					goldenPath := filepath.Join("testdata", "expected_metrics", "17_indexed_oid_res_attr_golden.yaml")
+					goldenPath := filepath.Join("testdata", "expected_metrics", "17_indexed_oid_res_attr_golden.json")
 					expectedMetrics, err := golden.ReadMetrics(goldenPath)
 					require.NoError(t, err)
 					return expectedMetrics
@@ -2192,8 +2179,7 @@ func TestScrape(t *testing.T) {
 				}
 
 				expectedMetricGen := func(t *testing.T) pmetric.Metrics {
-					goldenPath := filepath.Join("testdata", "expected_metrics",
-						"18_indexed_oid_and_prefix_res_attr_golden.yaml")
+					goldenPath := filepath.Join("testdata", "expected_metrics", "18_indexed_oid_and_prefix_res_attr_golden.json")
 					expectedMetrics, err := golden.ReadMetrics(goldenPath)
 					require.NoError(t, err)
 					return expectedMetrics

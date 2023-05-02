@@ -17,7 +17,6 @@ package traces // import "github.com/open-telemetry/opentelemetry-collector-cont
 import (
 	"context"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"go.opentelemetry.io/otel"
@@ -25,6 +24,7 @@ import (
 	"go.opentelemetry.io/otel/propagation"
 	semconv "go.opentelemetry.io/otel/semconv/v1.4.0"
 	"go.opentelemetry.io/otel/trace"
+	"go.uber.org/atomic"
 	"go.uber.org/zap"
 	"golang.org/x/time/rate"
 )

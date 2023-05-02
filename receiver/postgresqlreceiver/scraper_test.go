@@ -57,7 +57,7 @@ func TestScraper(t *testing.T) {
 	actualMetrics, err := scraper.scrape(context.Background())
 	require.NoError(t, err)
 
-	expectedFile := filepath.Join("testdata", "scraper", "otel", "expected.yaml")
+	expectedFile := filepath.Join("testdata", "scraper", "otel", "expected.json")
 	expectedMetrics, err := golden.ReadMetrics(expectedFile)
 	require.NoError(t, err)
 
@@ -77,7 +77,7 @@ func TestScraperNoDatabaseSingle(t *testing.T) {
 	actualMetrics, err := scraper.scrape(context.Background())
 	require.NoError(t, err)
 
-	expectedFile := filepath.Join("testdata", "scraper", "otel", "expected.yaml")
+	expectedFile := filepath.Join("testdata", "scraper", "otel", "expected.json")
 	expectedMetrics, err := golden.ReadMetrics(expectedFile)
 	require.NoError(t, err)
 
@@ -97,7 +97,7 @@ func TestScraperNoDatabaseMultiple(t *testing.T) {
 	actualMetrics, err := scraper.scrape(context.Background())
 	require.NoError(t, err)
 
-	expectedFile := filepath.Join("testdata", "scraper", "multiple", "expected.yaml")
+	expectedFile := filepath.Join("testdata", "scraper", "multiple", "expected.json")
 	expectedMetrics, err := golden.ReadMetrics(expectedFile)
 	require.NoError(t, err)
 
@@ -115,7 +115,7 @@ func TestScraperWithResourceAttributeFeatureGate(t *testing.T) {
 	actualMetrics, err := scraper.scrape(context.Background())
 	require.NoError(t, err)
 
-	expectedFile := filepath.Join("testdata", "scraper", "multiple", "expected_with_resource.yaml")
+	expectedFile := filepath.Join("testdata", "scraper", "multiple", "expected_with_resource.json")
 	expectedMetrics, err := golden.ReadMetrics(expectedFile)
 	require.NoError(t, err)
 
@@ -133,7 +133,7 @@ func TestScraperWithResourceAttributeFeatureGateSingle(t *testing.T) {
 	actualMetrics, err := scraper.scrape(context.Background())
 	require.NoError(t, err)
 
-	expectedFile := filepath.Join("testdata", "scraper", "otel", "expected_with_resource.yaml")
+	expectedFile := filepath.Join("testdata", "scraper", "otel", "expected_with_resource.json")
 	expectedMetrics, err := golden.ReadMetrics(expectedFile)
 	require.NoError(t, err)
 

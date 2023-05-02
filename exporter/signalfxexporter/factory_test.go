@@ -35,7 +35,6 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/open-telemetry/opentelemetry-collector-contrib/exporter/signalfxexporter/internal/translation"
-	"github.com/open-telemetry/opentelemetry-collector-contrib/internal/coreinternal/golden"
 )
 
 func TestCreateDefaultConfig(t *testing.T) {
@@ -507,12 +506,17 @@ func TestHostmetricsCPUTranslations(t *testing.T) {
 	converter, err := translation.NewMetricsConverter(zap.NewNop(), testGetTranslator(t), cfg.ExcludeMetrics, cfg.IncludeMetrics, "")
 	require.NoError(t, err)
 
-	md1, err := golden.ReadMetrics(filepath.Join("testdata", "hostmetrics_system_cpu_time_1.yaml"))
+	jsonpb := &pmetric.JSONUnmarshaler{}
+	bytes1, err := os.ReadFile(filepath.Join("testdata", "json", "hostmetrics_system_cpu_time_1.json"))
+	require.NoError(t, err)
+	md1, err := jsonpb.UnmarshalMetrics(bytes1)
 	require.NoError(t, err)
 
 	_ = converter.MetricsToSignalFxV2(md1)
 
-	md2, err := golden.ReadMetrics(filepath.Join("testdata", "hostmetrics_system_cpu_time_2.yaml"))
+	bytes2, err := os.ReadFile(filepath.Join("testdata", "json", "hostmetrics_system_cpu_time_2.json"))
+	require.NoError(t, err)
+	md2, err := jsonpb.UnmarshalMetrics(bytes2)
 	require.NoError(t, err)
 
 	translated2 := converter.MetricsToSignalFxV2(md2)

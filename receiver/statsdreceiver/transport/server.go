@@ -17,14 +17,15 @@ package transport // import "github.com/open-telemetry/opentelemetry-collector-c
 import (
 	"context"
 	"errors"
-	"net"
 
 	"go.opentelemetry.io/collector/consumer"
 
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/statsdreceiver/protocol"
 )
 
-var errNilListenAndServeParameters = errors.New("no parameter of ListenAndServe can be nil")
+var (
+	errNilListenAndServeParameters = errors.New("no parameter of ListenAndServe can be nil")
+)
 
 // Server abstracts the type of transport being used and offer an
 // interface to handle serving clients over that transport.
@@ -36,17 +37,12 @@ type Server interface {
 		p protocol.Parser,
 		mc consumer.Metrics,
 		r Reporter,
-		transferChan chan<- Metric,
+		transferChan chan<- string,
 	) error
 
 	// Close stops any running ListenAndServe, however, it waits for any
 	// data already received to be parsed and sent to the next consumer.
 	Close() error
-}
-
-type Metric struct {
-	Raw  string
-	Addr net.Addr
 }
 
 // Reporter is used to report (via zPages, logs, metrics, etc) the events

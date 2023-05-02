@@ -15,9 +15,7 @@
 package splunkhecreceiver // import "github.com/open-telemetry/opentelemetry-collector-contrib/receiver/splunkhecreceiver"
 
 import (
-	"bufio"
 	"errors"
-	"net/url"
 	"sort"
 
 	"go.opentelemetry.io/collector/pdata/pcommon"
@@ -25,14 +23,6 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/open-telemetry/opentelemetry-collector-contrib/internal/splunk"
-)
-
-const (
-	// splunk metadata
-	index      = "index"
-	source     = "source"
-	sourcetype = "sourcetype"
-	host       = "host"
 )
 
 var (
@@ -51,7 +41,18 @@ func splunkHecToLogData(logger *zap.Logger, events []*splunk.Event, resourceCust
 			rl := ld.ResourceLogs().AppendEmpty()
 			sl = rl.ScopeLogs().AppendEmpty()
 			scopeLogsMap[key] = sl
-			appendSplunkMetadata(rl, config.HecToOtelAttrs, event.Host, event.Source, event.SourceType, event.Index)
+			if event.Host != "" {
+				rl.Resource().Attributes().PutStr(config.HecToOtelAttrs.Host, event.Host)
+			}
+			if event.Source != "" {
+				rl.Resource().Attributes().PutStr(config.HecToOtelAttrs.Source, event.Source)
+			}
+			if event.SourceType != "" {
+				rl.Resource().Attributes().PutStr(config.HecToOtelAttrs.SourceType, event.SourceType)
+			}
+			if event.Index != "" {
+				rl.Resource().Attributes().PutStr(config.HecToOtelAttrs.Index, event.Index)
+			}
 			if resourceCustomizer != nil {
 				resourceCustomizer(rl.Resource())
 			}
@@ -85,40 +86,6 @@ func splunkHecToLogData(logger *zap.Logger, events []*splunk.Event, resourceCust
 	}
 
 	return ld, nil
-}
-
-// splunkHecRawToLogData transforms raw splunk event into log
-func splunkHecRawToLogData(sc *bufio.Scanner, query url.Values, resourceCustomizer func(pcommon.Resource), config *Config) (plog.Logs, int) {
-	ld := plog.NewLogs()
-	rl := ld.ResourceLogs().AppendEmpty()
-	appendSplunkMetadata(rl, config.HecToOtelAttrs, query.Get(host), query.Get(source), query.Get(sourcetype), query.Get(index))
-	if resourceCustomizer != nil {
-		resourceCustomizer(rl.Resource())
-	}
-
-	sl := rl.ScopeLogs().AppendEmpty()
-	for sc.Scan() {
-		logRecord := sl.LogRecords().AppendEmpty()
-		logLine := sc.Text()
-		logRecord.Body().SetStr(logLine)
-	}
-
-	return ld, sl.LogRecords().Len()
-}
-
-func appendSplunkMetadata(rl plog.ResourceLogs, attrs splunk.HecToOtelAttrs, host, source, sourceType, index string) {
-	if host != "" {
-		rl.Resource().Attributes().PutStr(attrs.Host, host)
-	}
-	if source != "" {
-		rl.Resource().Attributes().PutStr(attrs.Source, source)
-	}
-	if sourceType != "" {
-		rl.Resource().Attributes().PutStr(attrs.SourceType, sourceType)
-	}
-	if index != "" {
-		rl.Resource().Attributes().PutStr(attrs.Index, index)
-	}
 }
 
 func convertToValue(logger *zap.Logger, src interface{}, dest pcommon.Value) error {

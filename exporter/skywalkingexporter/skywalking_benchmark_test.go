@@ -21,7 +21,6 @@ import (
 	"net"
 	"strconv"
 	"sync"
-	"sync/atomic"
 	"testing"
 	"time"
 
@@ -32,6 +31,7 @@ import (
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/exporter/exporterhelper"
 	"go.opentelemetry.io/collector/exporter/exportertest"
+	"go.uber.org/atomic"
 	"google.golang.org/grpc"
 	v3 "skywalking.apache.org/repo/goapi/collect/common/v3"
 	logpb "skywalking.apache.org/repo/goapi/collect/logging/v3"
@@ -40,7 +40,7 @@ import (
 )
 
 var (
-	consumerNum = &atomic.Int32{}
+	consumerNum = atomic.NewInt32(0)
 	sumNum      = 10000
 )
 
@@ -200,7 +200,7 @@ func (h *mockLogHandler2) Collect(stream logpb.LogReportService_CollectServer) e
 			return stream.SendAndClose(&v3.Commands{})
 		}
 		if err == nil {
-			consumerNum.Add(1)
+			consumerNum.Inc()
 			if consumerNum.Load() >= int32(sumNum) {
 				end := time.Now().UnixMilli()
 				h.stopChan <- end

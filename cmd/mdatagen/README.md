@@ -1,11 +1,6 @@
 # Metadata Generator
 
-Components must contain a `metadata.yaml` file that documents various aspects of the component including:
-
-* its stability level
-* the distributions containing it
-* the types of pipelines it supports
-* metrics emitted in the case of a scraping receiver
+Receivers can contain a `metadata.yaml` file that documents the metrics that may be emitted by the receiver.
 
 Current examples:
 
