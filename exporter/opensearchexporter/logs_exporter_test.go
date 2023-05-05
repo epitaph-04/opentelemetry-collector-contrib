@@ -32,15 +32,15 @@ import (
 )
 
 func TestExporter_New(t *testing.T) {
-	type validate func(*testing.T, *opensearchExporter, error)
+	type validate func(*testing.T, *opensearchLogsExporter, error)
 
-	success := func(t *testing.T, exporter *opensearchExporter, err error) {
+	success := func(t *testing.T, exporter *opensearchLogsExporter, err error) {
 		require.Nil(t, err)
 		require.NotNil(t, exporter)
 	}
 
 	failWith := func(want error) validate {
-		return func(t *testing.T, exporter *opensearchExporter, err error) {
+		return func(t *testing.T, exporter *opensearchLogsExporter, err error) {
 			require.Nil(t, exporter)
 			require.NotNil(t, err)
 			if !errors.Is(err, want) {
@@ -92,7 +92,7 @@ func TestExporter_New(t *testing.T) {
 				os.Setenv(k, v)
 			}
 
-			exporter, err := newExporter(zap.NewNop(), test.config)
+			exporter, err := newLogsExporter(zap.NewNop(), test.config)
 			if exporter != nil {
 				defer func() {
 					require.NoError(t, exporter.Shutdown(context.TODO()))
@@ -281,8 +281,8 @@ func TestExporter_PushEvent(t *testing.T) {
 	})
 }
 
-func newTestExporter(t *testing.T, url string, fns ...func(*Config)) *opensearchExporter {
-	exporter, err := newExporter(zaptest.NewLogger(t), withTestExporterConfig(fns...)(url))
+func newTestExporter(t *testing.T, url string, fns ...func(*Config)) *opensearchLogsExporter {
+	exporter, err := newLogsExporter(zaptest.NewLogger(t), withTestExporterConfig(fns...)(url))
 	require.NoError(t, err)
 
 	t.Cleanup(func() { exporter.Shutdown(context.TODO()) })
@@ -302,7 +302,7 @@ func withTestExporterConfig(fns ...func(*Config)) func(string) *Config {
 	}
 }
 
-func mustSend(t *testing.T, exporter *opensearchExporter, contents string) {
+func mustSend(t *testing.T, exporter *opensearchLogsExporter, contents string) {
 	err := exporter.pushEvent(context.TODO(), []byte(contents))
 	require.NoError(t, err)
 }

@@ -6,6 +6,7 @@ require (
 	github.com/cenkalti/backoff/v4 v4.2.0
 	github.com/elastic/go-structform v0.0.9
 	github.com/open-telemetry/opentelemetry-collector-contrib/internal/common v0.73.0
+	github.com/open-telemetry/opentelemetry-collector-contrib/internal/coreinternal v0.73.0
 	github.com/opensearch-project/opensearch-go v1.1.0
 	github.com/stretchr/testify v1.8.2
 	go.opentelemetry.io/collector v0.73.0
@@ -50,5 +51,7 @@ require (
 )
 
 replace github.com/open-telemetry/opentelemetry-collector-contrib/internal/common => ../../internal/common
+
+replace github.com/open-telemetry/opentelemetry-collector-contrib/internal/coreinternal => ../../internal/coreinternal
 
 retract v0.65.0

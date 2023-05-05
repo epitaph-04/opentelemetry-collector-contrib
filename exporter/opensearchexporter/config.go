@@ -41,8 +41,14 @@ type Config struct {
 	// https://opensearch.org/docs/latest/opensearch/rest-api/index-apis/index/
 	// https://opensearch.org/docs/latest/opensearch/data-streams/
 	//
-	// This setting is required.
+	// Deprecated: `index` is deprecated and replaced with `logs_index`.
 	Index string `mapstructure:"index"`
+
+	// This setting is required when logging pipelines used.
+	LogsIndex string `mapstructure:"logs_index"`
+
+	// This setting is required when traces pipelines used.
+	TracesIndex string `mapstructure:"traces_index"`
 
 	// BulkAction configures the action for ingesting data. Only `create` and `index` are allowed here.
 	//
@@ -220,10 +226,6 @@ func (cfg *Config) Validate() error {
 		if endpoint == "" {
 			return errConfigEmptyEndpoint
 		}
-	}
-
-	if cfg.Index == "" {
-		return errConfigNoIndex
 	}
 
 	if _, ok := mappingModes[cfg.Mapping.Mode]; !ok {

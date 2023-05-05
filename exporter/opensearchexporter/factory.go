@@ -26,8 +26,10 @@ import (
 
 const (
 	// The value of "type" key in configuration.
-	typeStr   = "opensearch"
-	stability = component.StabilityLevelBeta
+	typeStr            = "opensearch"
+	defaultLogsIndex   = "logs-generic-default"
+	defaultTracesIndex = "traces-generic-default"
+	stability          = component.StabilityLevelBeta
 )
 
 // NewFactory creates a factory for Elastic exporter.
@@ -36,6 +38,7 @@ func NewFactory() exporter.Factory {
 		typeStr,
 		createDefaultConfig,
 		exporter.WithLogs(createLogsExporter, stability),
+		exporter.WithTraces(createTraceExporter, stability),
 	)
 }
 
@@ -44,7 +47,9 @@ func createDefaultConfig() component.Config {
 		HTTPClientSettings: HTTPClientSettings{
 			Timeout: 90 * time.Second,
 		},
-		Index: "logs-generic-default",
+		Index:       "",
+		LogsIndex:   defaultLogsIndex,
+		TracesIndex: defaultTracesIndex,
 		Retry: RetrySettings{
 			Enabled:         true,
 			MaxRequests:     3,
@@ -67,7 +72,11 @@ func createLogsExporter(
 	set exporter.CreateSettings,
 	cfg component.Config,
 ) (exporter.Logs, error) {
-	exporter, err := newExporter(set.Logger, cfg.(*Config))
+	if cfg.(*Config).Index != "" {
+		set.Logger.Warn("index option are deprecated and replaced with logs_index and traces_index.")
+	}
+
+	exporter, err := newLogsExporter(set.Logger, cfg.(*Config))
 	if err != nil {
 		return nil, fmt.Errorf("cannot configure OpenSearch logs exporter: %w", err)
 	}
@@ -77,6 +86,28 @@ func createLogsExporter(
 		set,
 		cfg,
 		exporter.pushLogsData,
+		exporterhelper.WithShutdown(exporter.Shutdown),
+	)
+}
+
+// createTraceExporter creates a new exporter for logs.
+//
+// Trace are directly indexed into OpenSearch.
+func createTraceExporter(
+	ctx context.Context,
+	set exporter.CreateSettings,
+	cfg component.Config,
+) (exporter.Traces, error) {
+	exporter, err := newTraceExporter(set.Logger, cfg.(*Config))
+	if err != nil {
+		return nil, fmt.Errorf("cannot configure OpenSearch trace exporter: %w", err)
+	}
+
+	return exporterhelper.NewTracesExporter(
+		ctx,
+		set,
+		cfg,
+		exporter.pushTraceData,
 		exporterhelper.WithShutdown(exporter.Shutdown),
 	)
 }
